@@ -597,12 +597,45 @@ app.get('/api/admin/rsvps', authenticateAdmin, async (req, res) => {
 app.get('/api/admin/gifts', authenticateAdmin, async (req, res) => {
   if (!db) return res.json({ success: false, gifts: [] });
   try {
-    const snapshot = await db.collection('gifts').orderBy('createdAt', 'desc').get();
-    const gifts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const snapshot = await db.collection('gifts').get();
+    const gifts = snapshot.docs.map(doc => {
+      const data = doc.data();
+      let createdAtFormatted = 'Data Indisponível';
+      let paidAtFormatted = null;
+
+      try {
+        if (data.createdAt) {
+          if (typeof data.createdAt.toDate === 'function') {
+            createdAtFormatted = data.createdAt.toDate().toLocaleString('pt-BR');
+          } else if (data.createdAt._seconds) {
+            createdAtFormatted = new Date(data.createdAt._seconds * 1000).toLocaleString('pt-BR');
+          } else {
+            createdAtFormatted = new Date(data.createdAt).toLocaleString('pt-BR');
+          }
+        }
+        if (data.paidAt) {
+          if (typeof data.paidAt.toDate === 'function') {
+            paidAtFormatted = data.paidAt.toDate().toLocaleString('pt-BR');
+          } else if (data.paidAt._seconds) {
+            paidAtFormatted = new Date(data.paidAt._seconds * 1000).toLocaleString('pt-BR');
+          } else {
+            paidAtFormatted = new Date(data.paidAt).toLocaleString('pt-BR');
+          }
+        }
+      } catch (e) {}
+
+      return {
+        id: doc.id,
+        ...data,
+        createdAtFormatted,
+        paidAtFormatted
+      };
+    });
+
     res.json({ success: true, gifts });
   } catch(err) {
-    console.error(err);
-    res.status(500).json({ success: false });
+    console.error('[ADMIN GIFTS ERRO]:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

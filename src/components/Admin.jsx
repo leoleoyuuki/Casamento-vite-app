@@ -17,6 +17,15 @@ export default function Admin() {
   const [newGuestCode, setNewGuestCode] = useState('');
   const [newGuestName, setNewGuestName] = useState('');
 
+  useEffect(() => {
+    const savedToken = localStorage.getItem('adminToken');
+    if (savedToken) {
+      setPassword(savedToken);
+      setIsAuthenticated(true);
+      loadAdminData(savedToken);
+    }
+  }, []);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -31,8 +40,9 @@ export default function Admin() {
       setLoading(false);
       
       if (data.success) {
+        localStorage.setItem('adminToken', password);
         setIsAuthenticated(true);
-        loadAdminData(data.token); // Usamos a própria senha como token simples no MVP
+        loadAdminData(password);
       } else {
         setErrorMsg('Senha incorreta.');
       }
@@ -40,6 +50,12 @@ export default function Admin() {
       setLoading(false);
       setErrorMsg('Erro ao tentar conectar com o servidor.');
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    setIsAuthenticated(false);
+    setPassword('');
   };
 
   const loadAdminData = async (token) => {
@@ -130,7 +146,7 @@ export default function Admin() {
         </div>
         <div style={styles.headerActions}>
           <a href="/" style={styles.viewSiteBtn}>Ver Site</a>
-          <button onClick={() => setIsAuthenticated(false)} style={styles.logoutBtn}>
+          <button onClick={handleLogout} style={styles.logoutBtn}>
             <LogOut size={18} /> Sair
           </button>
         </div>
@@ -287,8 +303,8 @@ export default function Admin() {
                       </h4>
                     </div>
                     <div style={{ marginTop: '10px', fontSize: '12px', color: '#999', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Registrado em: {gift.createdAt ? new Date(gift.createdAt._seconds * 1000).toLocaleString('pt-BR') : 'Data Indisponível'}</span>
-                      {gift.paidAt && <span>Pago em: {new Date(gift.paidAt._seconds * 1000).toLocaleString('pt-BR')}</span>}
+                      <span>Registrado em: {gift.createdAtFormatted || (gift.createdAt ? new Date(gift.createdAt._seconds ? gift.createdAt._seconds * 1000 : gift.createdAt).toLocaleString('pt-BR') : 'Data Indisponível')}</span>
+                      {(gift.paidAtFormatted || gift.paidAt) && <span>Pago em: {gift.paidAtFormatted || new Date(gift.paidAt._seconds ? gift.paidAt._seconds * 1000 : gift.paidAt).toLocaleString('pt-BR')}</span>}
                     </div>
                   </div>
                 ))
