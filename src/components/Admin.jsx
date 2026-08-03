@@ -277,55 +277,51 @@ export default function Admin() {
             <h3 style={styles.cardTitle}>Presentes e Contribuições</h3>
             <p style={styles.cardSubtitle}>Acompanhe todos os presentes gerados através da integração com o Asaas.</p>
             
-            {/* Card de Resumo Financeiro */}
+            {/* Resumo Financeiro Elegante */}
             <div style={{
-              display: 'flex',
-              gap: '20px',
-              flexWrap: 'wrap',
-              marginBottom: '25px',
-              backgroundColor: '#FAF6F0',
-              padding: '20px',
-              borderRadius: '10px',
-              border: '1px solid #E8DDCF'
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '16px',
+              marginBottom: '16px'
             }}>
-              <div style={{ flex: 1, minWidth: '200px' }}>
-                <span style={{ fontSize: '12px', color: '#8C7771', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                  Total em Presentes Confirmados
+              <div style={{
+                backgroundColor: '#FAF6F0',
+                padding: '20px 24px',
+                borderRadius: '8px',
+                border: '1px solid #E8DDCF'
+              }}>
+                <span style={{ fontSize: '11px', color: '#8C7771', letterSpacing: '0.5px', fontWeight: '600', textTransform: 'uppercase' }}>
+                  Total Recebido
                 </span>
-                <h2 style={{ margin: '5px 0 0 0', fontSize: '34px', color: '#5C6B48', fontFamily: 'Cormorant Garamond, serif' }}>
+                <h2 style={{ margin: '6px 0 0 0', fontSize: '32px', color: '#5C6B48', fontFamily: 'Cormorant Garamond, serif', fontWeight: '500' }}>
                   R$ {gifts.filter(g => g.status === 'PAID').reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0).toFixed(2).replace('.', ',')}
                 </h2>
               </div>
-              <div style={{ flex: 1, minWidth: '200px' }}>
-                <span style={{ fontSize: '12px', color: '#8C7771', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                  Qtd. de Presentes Pagos
+
+              <div style={{
+                backgroundColor: '#FAF6F0',
+                padding: '20px 24px',
+                borderRadius: '8px',
+                border: '1px solid #E8DDCF'
+              }}>
+                <span style={{ fontSize: '11px', color: '#8C7771', letterSpacing: '0.5px', fontWeight: '600', textTransform: 'uppercase' }}>
+                  Presentes Confirmados
                 </span>
-                <h2 style={{ margin: '5px 0 0 0', fontSize: '34px', color: '#745D57', fontFamily: 'Cormorant Garamond, serif' }}>
-                  {gifts.filter(g => g.status === 'PAID').length} <small style={{ fontSize: '16px', fontWeight: 'normal', color: '#888' }}>({gifts.length} gerados)</small>
+                <h2 style={{ margin: '6px 0 0 0', fontSize: '32px', color: '#745D57', fontFamily: 'Cormorant Garamond, serif', fontWeight: '500' }}>
+                  {gifts.filter(g => g.status === 'PAID').length} <span style={{ fontSize: '14px', color: '#A0908C', fontFamily: 'Inter, sans-serif', fontWeight: 'normal' }}>de {gifts.length} gerados</span>
                 </h2>
               </div>
             </div>
 
-            {/* Aviso de Parcelamento Asaas */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '12px',
-              backgroundColor: '#FFF9E6',
-              border: '1px solid #FFE58F',
-              borderRadius: '8px',
-              padding: '14px 18px',
-              marginBottom: '25px',
-              color: '#8C6B00',
-              fontSize: '13px',
-              lineHeight: 1.5
+            {/* Nota Discreta & Moderna */}
+            <p style={{
+              fontSize: '12px',
+              color: '#8C7771',
+              lineHeight: '1.5',
+              margin: '0 0 28px 2px'
             }}>
-              <span style={{ fontSize: '18px' }}>💡</span>
-              <div>
-                <strong>Aviso sobre o repasse das parcelas (Asaas):</strong><br />
-                O valor exibido acima reflete o valor total de cada presente confirmado. Em compras parceladas no cartão de crédito via Asaas, a liberação do saldo em sua conta ocorre gradualmente a cada parcela quitada.
-              </div>
-            </div>
+              * O valor acima representa o total acumulado dos presentes confirmados. Em vendas parceladas no cartão via Asaas, a disponibilização do saldo em conta segue o fluxo de quitação de cada parcela.
+            </p>
 
             <div style={styles.listContainer}>
               {gifts.length === 0 ? (
