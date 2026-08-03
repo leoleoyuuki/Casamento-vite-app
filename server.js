@@ -547,50 +547,138 @@ app.post('/api/asaas/webhook/simulate', (req, res) => {
 });
 
 // ----------------------------------------------------
-// OTHER APP ENDPOINTS (RSVP & Recados)
+// ----------------------------------------------------
+// OTHER APP ENDPOINTS (RSVP, Recados e Admin)
 // ----------------------------------------------------
 
-app.post('/api/rsvp', (req, res) => {
-  const { code, guestName, totalGuests, message } = req.body;
-  if (!code || !guestName) {
-    return res.status(400).json({ success: false, message: 'Código e nome são obrigatórios.' });
+// Admin Middleware
+const authenticateAdmin = (req, res, next) => {
+  const token = req.headers['authorization'];
+  if (token === 'anaedener28-11') return next();
+  return res.status(401).json({ success: false, message: 'Não autorizado' });
+};
+
+// Admin Login
+app.post('/api/admin/login', (req, res) => {
+  if (req.body.password === 'anaedener28-11') {
+    res.json({ success: true, token: 'anaedener28-11' });
+  } else {
+    res.status(401).json({ success: false });
   }
-
-  const rsvp = {
-    id: rsvpStore.length + 1,
-    code,
-    guestName,
-    totalGuests: parseInt(totalGuests) || 1,
-    message,
-    confirmedAt: new Date().toISOString()
-  };
-
-  rsvpStore.push(rsvp);
-  console.log('[RSVP CONFIRMADO]:', rsvp);
-
-  res.json({ success: true, message: 'Presença confirmada com sucesso! Mal podemos esperar para celebrar com você.' });
 });
 
-app.get('/api/messages', (req, res) => {
-  res.json({ success: true, messages: messageStore });
+// Admin Get Messages
+app.get('/api/admin/messages', authenticateAdmin, async (req, res) => {
+  if (!db) return res.json({ success: false, messages: [] });
+  try {
+    const snapshot = await db.collection('messages').orderBy('createdAt', 'desc').get();
+    const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ success: true, messages: msgs });
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
 });
 
-app.post('/api/messages', (req, res) => {
-  const { author, relationship, text } = req.body;
-  if (!author || !text) {
-    return res.status(400).json({ success: false, message: 'Nome e mensagem são obrigatórios.' });
+// Admin Get RSVPs
+app.get('/api/admin/rsvps', authenticateAdmin, async (req, res) => {
+  if (!db) return res.json({ success: false, rsvps: [] });
+  try {
+    const snapshot = await db.collection('guests').get();
+    const rsvps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ success: true, rsvps });
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ success: false });
   }
+});
 
-  const newMessage = {
-    id: messageStore.length + 1,
-    author,
-    relationship: relationship || 'Convidado Querido',
-    date: new Date().toLocaleDateString('pt-BR'),
-    text
-  };
+// Admin Add Guest Code
+app.post('/api/admin/guests', authenticateAdmin, async (req, res) => {
+  if (!db) return res.status(500).json({ success: false, message: 'DB offline' });
+  const { code, name } = req.body;
+  try {
+    await db.collection('guests').doc(code).set({ code, name, confirmed: false });
+    res.json({ success: true });
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
 
-  messageStore.unshift(newMessage);
-  res.json({ success: true, message: newMessage });
+// RSVP Verify Code
+app.post('/api/rsvp/verify', async (req, res) => {
+  if (!db) return res.status(500).json({ success: false, message: 'DB offline' });
+  try {
+    const doc = await db.collection('guests').doc(req.body.code).get();
+    if (doc.exists) {
+      res.json({ success: true, guest: doc.data() });
+    } else {
+      res.status(404).json({ success: false, message: 'Código inválido.' });
+    }
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+
+// RSVP Confirm
+app.post('/api/rsvp', async (req, res) => {
+  if (!db) return res.status(500).json({ success: false, message: 'DB offline' });
+  try {
+    await db.collection('guests').doc(req.body.code).update({
+      guestName: req.body.guestName,
+      totalGuests: parseInt(req.body.totalGuests) || 1,
+      message: req.body.message,
+      confirmed: true,
+      confirmedAt: FieldValue.serverTimestamp()
+    });
+    res.json({ success: true, message: 'Presença confirmada com sucesso! Mal podemos esperar para celebrar com você.' });
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Erro ao confirmar presença.' });
+  }
+});
+
+// Get Public Messages
+app.get('/api/messages', async (req, res) => {
+  if (!db) return res.json({ success: false, messages: [] });
+  try {
+    // Buscamos todas ordenadas e filtramos na memória para evitar a necessidade de criar Composite Index no Firebase para o MVP
+    const snapshot = await db.collection('messages').orderBy('createdAt', 'desc').get();
+    const msgs = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(msg => msg.isPublic !== false); // Remove as ocultas
+
+    res.json({ success: true, messages: msgs });
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+
+// Post Message (Public or Private)
+app.post('/api/messages', async (req, res) => {
+  if (!db) return res.status(500).json({ success: false, message: 'DB offline' });
+  try {
+    const { author, relationship, text, isPublic } = req.body;
+    if (!author || !text) return res.status(400).json({ success: false });
+
+    const msg = {
+      author,
+      relationship: relationship || 'Convidado Querido',
+      text,
+      isPublic: isPublic !== false, // default true
+      date: new Date().toLocaleDateString('pt-BR'),
+      createdAt: FieldValue.serverTimestamp()
+    };
+    
+    const docRef = await db.collection('messages').add(msg);
+    res.json({ success: true, message: { id: docRef.id, ...msg } });
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
 });
 
 // Condicional para não dar erro de porta na Vercel (onde é serverless)

@@ -9,6 +9,7 @@ export default function MessageBoard() {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState(null);
+  const [isPublic, setIsPublic] = useState(true);
 
   useEffect(() => {
     fetch('/api/messages')
@@ -32,18 +33,21 @@ export default function MessageBoard() {
       const res = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author, relationship, text })
+        body: JSON.stringify({ author, relationship, text, isPublic })
       });
 
       const data = await res.json();
       setLoading(false);
 
       if (data.success) {
-        setMessages([data.message, ...messages]);
+        if (isPublic) {
+          setMessages([data.message, ...messages]);
+        }
         setAuthor('');
         setRelationship('');
         setText('');
-        setSuccessMsg('Sua mensagem foi publicada no mural dos noivos!');
+        setIsPublic(true);
+        setSuccessMsg(isPublic ? 'Sua mensagem foi publicada no mural dos noivos!' : 'Sua mensagem privada foi enviada com sucesso para os noivos!');
         setTimeout(() => setSuccessMsg(null), 4000);
       }
     } catch (err) {
@@ -127,6 +131,18 @@ export default function MessageBoard() {
                   required
                   style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', fontSize: '14px' }} 
                 />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', cursor: 'pointer' }} onClick={() => setIsPublic(!isPublic)}>
+                <input 
+                  type="checkbox" 
+                  checked={!isPublic} 
+                  onChange={() => setIsPublic(!isPublic)}
+                  style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: 'var(--color-verde)' }}
+                />
+                <label style={{ margin: 0, fontSize: '13px', color: '#666', cursor: 'pointer' }}>
+                  Esconder mensagem (Privado para os noivos)
+                </label>
               </div>
 
               <button 

@@ -14,20 +14,35 @@ export default function RSVP() {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleValidateCode = (e) => {
+  const [isValidating, setIsValidating] = useState(false);
+
+  const handleValidateCode = async (e) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
+    setIsValidating(true);
 
     const cleanCode = guestCode.trim().toUpperCase();
-    const found = GUEST_LIST.find(g => g.code === cleanCode);
 
-    if (found) {
-      setActiveGuest(found);
-      setMainName(found.name);
-      setTotalGuests(1);
-    } else {
-      setErrorMsg('Código não encontrado na lista fechada. Verifique seu convite ou digite o código correto (Ex: ANA-101, DENER-202).');
+    try {
+      const res = await fetch('/api/rsvp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: cleanCode })
+      });
+      const data = await res.json();
+      setIsValidating(false);
+
+      if (data.success) {
+        setActiveGuest(data.guest);
+        setMainName(data.guest.name);
+        setTotalGuests(1);
+      } else {
+        setErrorMsg(data.message || 'Código não encontrado na lista fechada. Verifique seu convite ou digite o código correto.');
+      }
+    } catch (err) {
+      setIsValidating(false);
+      setErrorMsg('Erro de comunicação com o servidor. Tente novamente.');
     }
   };
 
@@ -127,9 +142,9 @@ export default function RSVP() {
                       outline: 'none'
                     }}
                   />
-                  <button type="submit" className="btn btn-primary" style={{ padding: '14px 28px' }}>
-                    Validar Convite
-                  </button>
+                  <button type="submit" className="btn btn-primary" style={{ padding: '14px 28px', display: 'flex', gap: '8px' }} disabled={isValidating}>
+                  {isValidating ? 'Validando...' : 'Validar Convite'} <CheckCircle size={18} />
+                </button>
                 </div>
 
                 {errorMsg && (

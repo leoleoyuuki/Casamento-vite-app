@@ -11,8 +11,17 @@ import RSVP from './components/RSVP';
 import MessageBoard from './components/MessageBoard';
 import Footer from './components/Footer';
 
+import Admin from './components/Admin';
+
 export default function App() {
   const [selectedGift, setSelectedGift] = useState(null);
+
+  // Roteamento Simples
+  const path = window.location.pathname;
+  
+  if (path === '/admin') {
+    return <Admin />;
+  }
 
   return (
     <div className="app-container">
