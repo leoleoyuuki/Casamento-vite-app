@@ -10,6 +10,7 @@ export default function Admin() {
   // Dados
   const [messages, setMessages] = useState([]);
   const [rsvps, setRsvps] = useState([]);
+  const [gifts, setGifts] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Formulário de Convidados
@@ -56,6 +57,13 @@ export default function Admin() {
       });
       const rsvpData = await rsvpRes.json();
       if (rsvpData.success) setRsvps(rsvpData.rsvps);
+
+      // Buscar Presentes
+      const giftsRes = await fetch('/api/admin/gifts', {
+        headers: { 'Authorization': token }
+      });
+      const giftsData = await giftsRes.json();
+      if (giftsData.success) setGifts(giftsData.gifts);
 
     } catch (err) {
       console.error('Erro ao carregar dados do admin', err);
@@ -140,6 +148,13 @@ export default function Admin() {
           onClick={() => setActiveTab('rsvps')}
         >
           <Users size={18} /> Lista de Convidados ({rsvps.length})
+        </button>
+        <button 
+          style={activeTab === 'gifts' ? styles.activeTab : styles.tab} 
+          onClick={() => setActiveTab('gifts')}
+        >
+          {/* Note: O ícone Gift precisará ser importado se ainda não estiver, mas usaremos Heart para manter simples caso Gift falhe */}
+          <Shield size={18} /> Presentes Recebidos ({gifts.length})
         </button>
       </div>
 
@@ -237,6 +252,47 @@ export default function Admin() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'gifts' && (
+          <div style={styles.card}>
+            <h3 style={styles.cardTitle}>Presentes e Contribuições</h3>
+            <p style={styles.cardSubtitle}>Acompanhe todos os presentes gerados através da integração com o Asaas.</p>
+            
+            <div style={styles.listContainer}>
+              {gifts.length === 0 ? (
+                <p style={styles.emptyState}>Nenhum presente registrado ainda.</p>
+              ) : (
+                gifts.map((gift, idx) => (
+                  <div key={idx} style={{...styles.messageItem, borderLeftColor: gift.status === 'PAID' ? 'var(--color-verde)' : '#f39c12'}}>
+                    <div style={styles.messageHeader}>
+                      <span style={{fontWeight: 'bold', color: 'var(--color-marrom)', fontSize: '16px'}}>
+                        {gift.giftTitle}
+                      </span>
+                      {gift.status === 'PAID' ? (
+                        <span style={styles.publicBadge}><Check size={14} /> Recebido</span>
+                      ) : (
+                        <span style={{...styles.privateBadge, backgroundColor: '#fdf3e7', color: '#d35400'}}><Lock size={14} /> Aguardando Pagamento</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <p style={{ margin: '5px 0', fontSize: '14px', color: '#555' }}>
+                        De: <strong>{gift.guestName}</strong> <br/>
+                        <small>{gift.guestEmail}</small>
+                      </p>
+                      <h4 style={{ margin: 0, fontSize: '20px', color: 'var(--color-verde-oliva)' }}>
+                        R$ {Number(gift.amount).toFixed(2).replace('.', ',')}
+                      </h4>
+                    </div>
+                    <div style={{ marginTop: '10px', fontSize: '12px', color: '#999', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Registrado em: {gift.createdAt ? new Date(gift.createdAt._seconds * 1000).toLocaleString('pt-BR') : 'Data Indisponível'}</span>
+                      {gift.paidAt && <span>Pago em: {new Date(gift.paidAt._seconds * 1000).toLocaleString('pt-BR')}</span>}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}

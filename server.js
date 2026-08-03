@@ -593,6 +593,19 @@ app.get('/api/admin/rsvps', authenticateAdmin, async (req, res) => {
   }
 });
 
+// Admin Get Gifts
+app.get('/api/admin/gifts', authenticateAdmin, async (req, res) => {
+  if (!db) return res.json({ success: false, gifts: [] });
+  try {
+    const snapshot = await db.collection('gifts').orderBy('createdAt', 'desc').get();
+    const gifts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ success: true, gifts });
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+
 // Admin Add Guest Code
 app.post('/api/admin/guests', authenticateAdmin, async (req, res) => {
   if (!db) return res.status(500).json({ success: false, message: 'DB offline' });
