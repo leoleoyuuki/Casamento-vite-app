@@ -11,19 +11,29 @@ import fs from 'fs';
 dotenv.config();
 
 // Configuração do Firebase Admin (Segurança para Vercel)
-let serviceAccount;
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-  // Na Vercel, usaremos a variável de ambiente (colar o JSON lá)
-  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-} else {
-  // Localmente, usamos o arquivo
-  serviceAccount = JSON.parse(fs.readFileSync('./casamento-vite-app-firebase-adminsdk-fbsvc-b29810b662.json', 'utf8'));
-}
+let serviceAccount = null;
+let db = null;
 
-initializeApp({
-  credential: cert(serviceAccount)
-});
-const db = getFirestore();
+try {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+    const jsonString = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString('utf8');
+    serviceAccount = JSON.parse(jsonString);
+  } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } else if (fs.existsSync('./casamento-vite-app-firebase-adminsdk-fbsvc-b29810b662.json')) {
+    serviceAccount = JSON.parse(fs.readFileSync('./casamento-vite-app-firebase-adminsdk-fbsvc-b29810b662.json', 'utf8'));
+  }
+
+  if (serviceAccount) {
+    initializeApp({ credential: cert(serviceAccount) });
+    db = getFirestore();
+    console.log("✅ [FIREBASE] Banco de dados conectado com sucesso.");
+  } else {
+    console.warn("⚠️ [FIREBASE] Nenhuma credencial configurada. Defina FIREBASE_SERVICE_ACCOUNT nas variáveis de ambiente da Vercel.");
+  }
+} catch (err) {
+  console.error("⚠️ [FIREBASE] Erro crítico ao conectar banco:", err.message);
+}
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -261,17 +271,19 @@ app.post('/api/asaas/create-checkout', async (req, res) => {
 
     // Salvar presente no Firestore com status PENDING
     try {
-      await db.collection('gifts').doc(paymentData.id).set({
-        paymentId: paymentData.id,
-        giftTitle: giftTitle,
-        amount: parseFloat(amount),
-        guestName: guestName || 'Amigo(a)',
-        guestEmail: guestEmail || '',
-        guestCpf: finalCpf,
-        status: 'PENDING',
-        createdAt: FieldValue.serverTimestamp()
-      });
-      console.log(`[FIRESTORE] Presente PENDING registrado: ${paymentData.id}`);
+      if (db) {
+        await db.collection('gifts').doc(paymentData.id).set({
+          paymentId: paymentData.id,
+          giftTitle: giftTitle,
+          amount: parseFloat(amount),
+          guestName: guestName || 'Amigo(a)',
+          guestEmail: guestEmail || '',
+          guestCpf: finalCpf,
+          status: 'PENDING',
+          createdAt: FieldValue.serverTimestamp()
+        });
+        console.log(`[FIRESTORE] Presente PENDING registrado: ${paymentData.id}`);
+      }
     } catch (fsErr) {
       console.error('[FIRESTORE ERRO] Falha ao registrar presente pendente:', fsErr);
     }
@@ -446,7 +458,7 @@ app.post('/api/asaas/webhook', async (req, res) => {
       
       // Atualizar status no Firestore para PAID
       try {
-        if (payment?.id) {
+        if (db && payment?.id) {
           await db.collection('gifts').doc(payment.id).update({
             status: 'PAID',
             paidAt: FieldValue.serverTimestamp()
