@@ -1,0 +1,250 @@
+:root {
+  /* Paleta de Cores Oficial do Casamento - Vercel / Radix / Linear Style Design System */
+  --color-marrom: #745D57;
+  --color-marrom-hover: #5E4A45;
+  --color-rosa-claro: #D9A7B0;
+  --color-nude-rosado: #C88F98;
+  --color-verde-salvia: #A9B39A;
+  --color-verde-oliva: #7F8F6A;
+  --color-verde-oliva-hover: #697856;
+  --color-bege-claro: #E8DDCF;
+  --color-bege-hover: #DFD0C0;
+  
+  /* Cores de Superfície Sólidas e Precisas */
+  --bg-primary: #FAF6F0;
+  --bg-surface: #FFFFFF;
+  --bg-secondary: #F3ECE2;
+  --bg-dark-accent: #3E322F;
+  
+  /* Tipografia & Contraste Alto */
+  --text-dark: #2C221E;
+  --text-muted: #5C4E48;
+  --text-subtle: #8C7C75;
+  --text-light: #FAF6F0;
+  
+  /* Bordas Precisas (Vercel/Linear Style 1px) */
+  --border-subtle: rgba(116, 93, 87, 0.12);
+  --border-strong: rgba(116, 93, 87, 0.25);
+  --border-focus: var(--color-marrom);
+
+  /* Tipografia */
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-script: 'Pinyon Script', cursive;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Playfair Display', serif;
+
+  /* Geometria e Sombras Sólidas/Sutis de Camada Única */
+  --shadow-sm: 0 1px 2px 0 rgba(44, 34, 30, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(44, 34, 30, 0.06), 0 2px 4px -2px rgba(44, 34, 30, 0.04);
+  
+  /* Border Radius Maduro e Utilitário (8px - 12px) */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Transição Rápida e Direta (150ms) */
+  --transition-fast: color 150ms cubic-bezier(0.4, 0, 0.2, 1), background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-dark);
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tipografia Utilitária */
+h1, h2, h3, h4 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.font-script {
+  font-family: var(--font-script);
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+/* Layout Containers */
+.container {
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Botões com Microinterações Sutis e Foco Acessível (Estilo Radix/Linear) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  text-decoration: none;
+  outline: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--color-marrom);
+}
+
+.btn-primary {
+  background-color: var(--color-marrom);
+  color: var(--text-light);
+  border-color: var(--color-marrom);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-marrom-hover);
+  border-color: var(--color-marrom-hover);
+}
+
+.btn-secondary {
+  background-color: var(--color-bege-claro);
+  color: var(--color-marrom);
+  border-color: var(--border-subtle);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-bege-hover);
+  border-color: var(--border-strong);
+}
+
+.btn-outline {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text-dark);
+}
+
+.btn-outline:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--color-marrom);
+}
+
+.btn-sage {
+  background-color: var(--color-verde-oliva);
+  color: #FFFFFF;
+  border-color: var(--color-verde-oliva);
+}
+
+.btn-sage:hover {
+  background-color: var(--color-verde-oliva-hover);
+  border-color: var(--color-verde-oliva-hover);
+}
+
+/* Header da Seção Limpo e Proporcional */
+.section-header {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 48px;
+}
+
+.section-subtitle {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-nude-rosado);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.section-title {
+  font-size: clamp(28px, 3.5vw, 42px);
+  color: var(--color-marrom);
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+
+.section-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 12px;
+  opacity: 0.6;
+}
+
+.section-divider::before,
+.section-divider::after {
+  content: "";
+  height: 1px;
+  width: 32px;
+  background-color: var(--border-strong);
+}
+
+/* Cards com Borda Precisa 1px e Superfície Sólida (Linear/Vercel) */
+.glass-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-fast);
+}
+
+.glass-card:hover {
+  border-color: var(--border-strong);
+}
+
+/* Inputs & Form Controls Limpos */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+select,
+textarea {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-dark);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  transition: var(--transition-fast);
+  outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-marrom);
+  box-shadow: 0 0 0 3px rgba(116, 93, 87, 0.1);
+}
+
+/* Scrollbar Sutil e Limpa */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}

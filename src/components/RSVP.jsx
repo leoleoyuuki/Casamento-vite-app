@@ -1,0 +1,215 @@
+import React, { useState } from 'react';
+import { CheckCircle, KeyRound, Users, Heart, Sparkles, Check } from 'lucide-react';
+import { GUEST_LIST } from '../data/rsvpsData';
+
+export default function RSVP() {
+  const [guestCode, setGuestCode] = useState('');
+  const [activeGuest, setActiveGuest] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
+
+  // Form State
+  const [mainName, setMainName] = useState('');
+  const [totalGuests, setTotalGuests] = useState(1);
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleValidateCode = (e) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    const cleanCode = guestCode.trim().toUpperCase();
+    const found = GUEST_LIST.find(g => g.code === cleanCode);
+
+    if (found) {
+      setActiveGuest(found);
+      setMainName(found.name);
+      setTotalGuests(1);
+    } else {
+      setErrorMsg('Código não encontrado na lista fechada. Verifique seu convite ou digite o código correto (Ex: ANA-101, DENER-202).');
+    }
+  };
+
+  const handleConfirmRsvp = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrorMsg(null);
+
+    try {
+      const res = await fetch('/api/rsvp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: activeGuest.code,
+          guestName: mainName,
+          totalGuests,
+          message: notes
+        })
+      });
+
+      const data = await res.json();
+      setIsSubmitting(false);
+
+      if (data.success) {
+        setSuccessMsg(data.message);
+      } else {
+        setErrorMsg(data.message || 'Erro ao confirmar presença.');
+      }
+    } catch (err) {
+      setIsSubmitting(false);
+      setErrorMsg('Erro de conexão ao enviar confirmação.');
+    }
+  };
+
+  return (
+    <section id="rsvp" style={{ padding: '100px 0', backgroundColor: '#FAF6F0' }}>
+      <div className="container">
+        
+        {/* Cabeçalho */}
+        <div className="section-header">
+          <span className="section-subtitle">CONFIRMAÇÃO DE PRESENÇA</span>
+          <h2 className="section-title">Confirme Sua Presença (RSVP)</h2>
+          <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>
+            A confirmação de presença é fundamental para a organização do nosso casamento. Insira o código exclusivo do seu convite abaixo.
+          </p>
+          <div className="section-divider">
+            <CheckCircle size={16} color="var(--color-verde-oliva)" />
+          </div>
+        </div>
+
+        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+          
+          {/* Card Principal */}
+          <div className="glass-card" style={{ padding: '40px', borderRadius: 'var(--radius-lg)' }}>
+            
+            {successMsg ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ display: 'inline-flex', padding: '16px', backgroundColor: 'rgba(169, 179, 154, 0.2)', borderRadius: '50%', marginBottom: '16px' }}>
+                  <Check size={40} color="var(--color-verde-oliva)" />
+                </div>
+                <h3 style={{ fontSize: '26px', color: 'var(--color-marrom)', marginBottom: '8px' }}>
+                  Presença Confirmada!
+                </h3>
+                <p style={{ fontSize: '15px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '24px' }}>
+                  {successMsg}
+                </p>
+                <button 
+                  onClick={() => { setActiveGuest(null); setSuccessMsg(null); setGuestCode(''); }} 
+                  className="btn btn-outline"
+                >
+                  Confirmar para Outro Convite
+                </button>
+              </div>
+            ) : !activeGuest ? (
+              
+              /* Passo 1: Digitar Código */
+              <form onSubmit={handleValidateCode}>
+                <div style={{ textTransform: 'uppercase', fontSize: '12px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <KeyRound size={16} /> Digite o Código Único do Seu Convite:
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: ANA-101 ou DENER-202" 
+                    value={guestCode} 
+                    onChange={(e) => setGuestCode(e.target.value)}
+                    style={{
+                      flex: 1,
+                      minWidth: '200px',
+                      padding: '14px 18px',
+                      borderRadius: 'var(--radius-full)',
+                      border: '1.5px solid var(--border-light)',
+                      fontFamily: 'var(--font-sans)',
+                      fontSize: '15px',
+                      textTransform: 'uppercase',
+                      outline: 'none'
+                    }}
+                  />
+                  <button type="submit" className="btn btn-primary" style={{ padding: '14px 28px' }}>
+                    Validar Convite
+                  </button>
+                </div>
+
+                {errorMsg && (
+                  <p style={{ color: '#9B1C1C', fontSize: '13px', marginTop: '14px' }}>{errorMsg}</p>
+                )}
+
+                <div style={{ marginTop: '24px', padding: '12px 16px', backgroundColor: 'rgba(232, 221, 207, 0.4)', borderRadius: 'var(--radius-sm)', fontSize: '12px', color: 'var(--text-muted)' }}>
+                  💡 <strong>Códigos de Demonstração para Teste:</strong> <code>ANA-101</code>, <code>DENER-202</code>, <code>CASAL-2026</code>, <code>AMIGOS-01</code>.
+                </div>
+              </form>
+            ) : (
+              
+              /* Passo 2: Formulário de Confirmação */
+              <form onSubmit={handleConfirmRsvp}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--border-light)' }}>
+                  <div>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-verde-oliva)', textTransform: 'uppercase' }}>Convite Validado</span>
+                    <h4 style={{ fontSize: '20px', color: 'var(--color-marrom)' }}>{activeGuest.name}</h4>
+                  </div>
+                  <button type="button" onClick={() => setActiveGuest(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}>
+                    Trocar código
+                  </button>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '6px' }}>
+                    Nome do Convidado Principal:
+                  </label>
+                  <input 
+                    type="text" 
+                    value={mainName} 
+                    onChange={(e) => setMainName(e.target.value)} 
+                    style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', fontSize: '14px' }} 
+                  />
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '6px' }}>
+                    Quantidade Total de Pessoas Confirmadas (Máx: {activeGuest.allowedGuests}):
+                  </label>
+                  <select 
+                    value={totalGuests} 
+                    onChange={(e) => setTotalGuests(parseInt(e.target.value))}
+                    style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', fontSize: '14px', backgroundColor: '#FFF' }}
+                  >
+                    {Array.from({ length: activeGuest.allowedGuests }, (_, i) => i + 1).map(num => (
+                      <option key={num} value={num}>{num} {num === 1 ? 'Pessoa' : 'Pessoas'}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '6px' }}>
+                    Alguma observação ou restrição alimentar? (Opcional):
+                  </label>
+                  <textarea 
+                    rows="3" 
+                    placeholder="Ex: Vegetariano, intolerância a glúten..." 
+                    value={notes} 
+                    onChange={(e) => setNotes(e.target.value)}
+                    style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', fontSize: '14px' }}
+                  />
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting} 
+                  className="btn btn-primary" 
+                  style={{ width: '100%', padding: '16px', fontSize: '15px' }}
+                >
+                  {isSubmitting ? 'Confirmando...' : 'Confirmar Presença no Casamento'}
+                </button>
+              </form>
+            )}
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+  );
+}
