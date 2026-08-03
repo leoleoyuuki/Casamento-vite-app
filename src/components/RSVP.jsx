@@ -181,21 +181,7 @@ export default function RSVP() {
                   />
                 </div>
 
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '6px' }}>
-                    Quantidade Total de Pessoas Confirmadas (Máx: {activeGuest.allowedGuests}):
-                  </label>
-                  <select 
-                    value={totalGuests} 
-                    onChange={(e) => setTotalGuests(parseInt(e.target.value))}
-                    style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', fontSize: '14px', backgroundColor: '#FFF' }}
-                  >
-                    {Array.from({ length: activeGuest.allowedGuests }, (_, i) => i + 1).map(num => (
-                      <option key={num} value={num}>{num} {num === 1 ? 'Pessoa' : 'Pessoas'}</option>
-                    ))}
-                  </select>
-                </div>
-
+                {/* Campo de quantidade de acompanhantes removido conforme solicitado pelos noivos. O convite é individual e intransferível. */}
                 <div style={{ marginBottom: '24px' }}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '6px' }}>
                     Alguma observação ou restrição alimentar? (Opcional):

@@ -189,7 +189,6 @@ export default function Admin() {
                         <span style={styles.codeTag}>{rsvp.code}</span>
                       </div>
                       <div style={styles.rsvpDetails}>
-                        <span>{rsvp.totalGuests} acompanhante(s)</span>
                         {rsvp.message && <p style={styles.rsvpNotes}>Obs: {rsvp.message}</p>}
                         <small>{rsvp.confirmedAt ? new Date(rsvp.confirmedAt._seconds * 1000).toLocaleString('pt-BR') : 'Data Indisponível'}</small>
                       </div>
