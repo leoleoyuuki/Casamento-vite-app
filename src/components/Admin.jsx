@@ -277,50 +277,33 @@ export default function Admin() {
             <h3 style={styles.cardTitle}>Presentes e Contribuições</h3>
             <p style={styles.cardSubtitle}>Acompanhe todos os presentes gerados através da integração com o Asaas.</p>
             
-            {/* Resumo Financeiro Elegante */}
+            {/* Barra Discreta de Totais */}
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '16px',
-              marginBottom: '16px'
+              display: 'flex',
+              alignItems: 'center',
+              justify: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              marginBottom: '10px',
+              paddingBottom: '12px',
+              borderBottom: '1px solid #EAEAEA'
             }}>
-              <div style={{
-                backgroundColor: '#FAF6F0',
-                padding: '20px 24px',
-                borderRadius: '8px',
-                border: '1px solid #E8DDCF'
-              }}>
-                <span style={{ fontSize: '11px', color: '#8C7771', letterSpacing: '0.5px', fontWeight: '600', textTransform: 'uppercase' }}>
-                  Total Recebido
-                </span>
-                <h2 style={{ margin: '6px 0 0 0', fontSize: '32px', color: '#5C6B48', fontFamily: 'Cormorant Garamond, serif', fontWeight: '500' }}>
-                  R$ {gifts.filter(g => g.status === 'PAID').reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0).toFixed(2).replace('.', ',')}
-                </h2>
-              </div>
-
-              <div style={{
-                backgroundColor: '#FAF6F0',
-                padding: '20px 24px',
-                borderRadius: '8px',
-                border: '1px solid #E8DDCF'
-              }}>
-                <span style={{ fontSize: '11px', color: '#8C7771', letterSpacing: '0.5px', fontWeight: '600', textTransform: 'uppercase' }}>
-                  Presentes Confirmados
-                </span>
-                <h2 style={{ margin: '6px 0 0 0', fontSize: '32px', color: '#745D57', fontFamily: 'Cormorant Garamond, serif', fontWeight: '500' }}>
-                  {gifts.filter(g => g.status === 'PAID').length} <span style={{ fontSize: '14px', color: '#A0908C', fontFamily: 'Inter, sans-serif', fontWeight: 'normal' }}>de {gifts.length} gerados</span>
-                </h2>
-              </div>
+              <span style={{ fontSize: '13px', color: '#666' }}>
+                Presentes Confirmados: <strong style={{ color: 'var(--color-marrom)' }}>{gifts.filter(g => g.status === 'PAID').length}</strong> <span style={{ color: '#999', fontSize: '12px' }}>(de {gifts.length} gerados)</span>
+              </span>
+              <span style={{ fontSize: '13px', color: '#888' }}>
+                Total acumulado: <strong style={{ color: '#5C6B48', fontWeight: '600' }}>R$ {gifts.filter(g => g.status === 'PAID').reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0).toFixed(2).replace('.', ',')}</strong>
+              </span>
             </div>
 
-            {/* Nota Discreta & Moderna */}
+            {/* Nota de Rodapé Minimalista */}
             <p style={{
-              fontSize: '12px',
-              color: '#8C7771',
-              lineHeight: '1.5',
-              margin: '0 0 28px 2px'
+              fontSize: '11px',
+              color: '#AAA',
+              lineHeight: '1.4',
+              margin: '0 0 24px 0'
             }}>
-              * O valor acima representa o total acumulado dos presentes confirmados. Em vendas parceladas no cartão via Asaas, a disponibilização do saldo em conta segue o fluxo de quitação de cada parcela.
+              * Vendas parceladas via Asaas têm repasses em conta liberados gradualmente a cada parcela quitada.
             </p>
 
             <div style={styles.listContainer}>
