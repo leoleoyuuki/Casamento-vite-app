@@ -16,10 +16,10 @@
   --bg-secondary: #F3ECE2;
   --bg-dark-accent: #3E322F;
   
-  /* Tipografia & Contraste Alto */
-  --text-dark: #2C221E;
-  --text-muted: #5C4E48;
-  --text-subtle: #8C7C75;
+  /* Tipografia & Contraste Alto - Marrom em tudo */
+  --text-dark: #745D57;
+  --text-muted: #745D57;
+  --text-subtle: #745D57;
   --text-light: #FAF6F0;
   
   /* Bordas Precisas (Vercel/Linear Style 1px) */
@@ -28,10 +28,10 @@
   --border-focus: var(--color-marrom);
 
   /* Tipografia */
-  --font-serif: 'Cormorant Garamond', Georgia, serif;
-  --font-script: 'Pinyon Script', cursive;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-heading: 'Playfair Display', serif;
+  --font-serif: 'Cormorant Garamond', 'Cormorant', Georgia, serif;
+  --font-script: 'Sloop Script Pro', 'Sloop Script', 'Pinyon Script', cursive;
+  --font-sans: 'Cormorant Garamond', 'Cormorant', Georgia, serif;
+  --font-heading: 'Cormorant Garamond', 'Cormorant', Georgia, serif;
 
   /* Geometria e Sombras Sólidas/Sutis de Camada Única */
   --shadow-sm: 0 1px 2px 0 rgba(44, 34, 30, 0.05);
@@ -58,27 +58,33 @@ html {
 }
 
 body {
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
   background-color: var(--bg-primary);
-  color: var(--text-dark);
-  line-height: 1.5;
+  color: var(--color-marrom);
+  line-height: 1.6;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Tipografia Utilitária */
-h1, h2, h3, h4 {
+h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-serif);
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--color-marrom);
   letter-spacing: -0.01em;
 }
 
-.font-script {
-  font-family: var(--font-script);
+p, span, label, input, select, textarea, button, a {
+  font-family: var(--font-serif);
+  color: var(--color-marrom);
+}
+
+.font-script, .highlight-script {
+  font-family: var(--font-script) !important;
 }
 
 .font-serif {
-  font-family: var(--font-serif);
+  font-family: var(--font-serif) !important;
 }
 
 /* Layout Containers */
@@ -115,8 +121,12 @@ h1, h2, h3, h4 {
 
 .btn-primary {
   background-color: var(--color-marrom);
-  color: var(--text-light);
+  color: var(--text-light) !important;
   border-color: var(--color-marrom);
+}
+
+.btn-primary *, .btn-primary svg {
+  color: var(--text-light) !important;
 }
 
 .btn-primary:hover {
@@ -148,8 +158,12 @@ h1, h2, h3, h4 {
 
 .btn-sage {
   background-color: var(--color-verde-oliva);
-  color: #FFFFFF;
+  color: #FFFFFF !important;
   border-color: var(--color-verde-oliva);
+}
+
+.btn-sage *, .btn-sage svg {
+  color: #FFFFFF !important;
 }
 
 .btn-sage:hover {
@@ -247,4 +261,15 @@ textarea:focus {
 ::-webkit-scrollbar-thumb {
   background: var(--border-strong);
   border-radius: 3px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0.4;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }

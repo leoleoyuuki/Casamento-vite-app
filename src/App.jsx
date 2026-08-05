@@ -3,6 +3,7 @@ import Header from './components/Header';
 import Hero from './components/Hero';
 import Countdown from './components/Countdown';
 import OurStory from './components/OurStory';
+import PhotoDivider from './components/PhotoDivider';
 import EventDetails from './components/EventDetails';
 import DressCode from './components/DressCode';
 import GiftList from './components/GiftList';
@@ -30,6 +31,7 @@ export default function App() {
         <Hero />
         <Countdown />
         <OurStory />
+        <PhotoDivider image="/assets/divisoria1.png" />
         <EventDetails />
         <DressCode />
         <GiftList onSelectGift={(gift) => setSelectedGift(gift)} />

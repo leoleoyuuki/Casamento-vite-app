@@ -152,7 +152,7 @@ export default function RSVP() {
                 )}
 
                 <div style={{ marginTop: '24px', padding: '12px 16px', backgroundColor: 'rgba(232, 221, 207, 0.4)', borderRadius: 'var(--radius-sm)', fontSize: '12px', color: 'var(--text-muted)' }}>
-                  💡 <strong>Códigos de Demonstração para Teste:</strong> <code>ANA-101</code>, <code>DENER-202</code>, <code>CASAL-2026</code>, <code>AMIGOS-01</code>.
+                  <strong>Códigos de Demonstração para Teste:</strong> <code>ANA-101</code>, <code>DENER-202</code>, <code>CASAL-2026</code>, <code>AMIGOS-01</code>.
                 </div>
               </form>
             ) : (

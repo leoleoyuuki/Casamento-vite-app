@@ -6,8 +6,25 @@ export default function EventDetails() {
   const wazeUrl = "https://waze.com/ul?q=Sitio%20Sao%20Jorge%20Jardim%20Secreto%20Sao%20Bernardo%20do%20Campo";
 
   return (
-    <section id="local" style={{ padding: '100px 0', backgroundColor: '#F3ECE2' }}>
-      <div className="container">
+    <section id="local" style={{ padding: '100px 0', backgroundColor: '#FAF6F0', position: 'relative', overflow: 'hidden' }}>
+      {/* Elemento Gráfico Floral de Enfeite */}
+      <img 
+        src="/assets/flor2.png" 
+        alt="" 
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: '-20px',
+          right: '-25px',
+          width: '170px',
+          height: 'auto',
+          opacity: 0.28,
+          pointerEvents: 'none',
+          transform: 'rotate(15deg)',
+          zIndex: 1
+        }}
+      />
+      <div className="container" style={{ position: 'relative', zIndex: 2 }}>
         
         {/* Cabeçalho da Seção */}
         <div className="section-header">

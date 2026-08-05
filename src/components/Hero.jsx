@@ -45,10 +45,10 @@ export default function Hero() {
         
 
 
-        {/* Nomes dos Noivos (Tamanho reduzido e conectivo "e" explícito) */}
+        {/* Nomes dos Noivos em Sloop Script / Script Pro */}
         <h1 style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: 'clamp(32px, 5.5vw, 56px)',
+          fontFamily: 'var(--font-script)',
+          fontSize: 'clamp(48px, 8vw, 76px)',
           fontWeight: 400,
           color: '#FFFFFF',
           lineHeight: 1.1,
@@ -155,6 +155,57 @@ export default function Hero() {
           </a>
         </div>
 
+      </div>
+
+      {/* Faixa de Cores (Bandstripes) com 36 listras finas em tons de verde/marrom/bege e textura aquarela */}
+      <div 
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '10px',
+          overflow: 'hidden',
+          zIndex: 10,
+          boxShadow: '0 -2px 6px rgba(0,0,0,0.15)'
+        }}
+      >
+        <div style={{ display: 'flex', width: '100%', height: '100%', position: 'relative' }}>
+          {[
+            '#7F8F6A', '#A9B39A', '#5B6849', '#E8DDCF', '#745D57', '#6B7A59', 
+            '#93A083', '#485438', '#A9B39A', '#7F8F6A', '#DFD0C0', '#5B6849',
+            '#745D57', '#6B7A59', '#A9B39A', '#93A083', '#7F8F6A', '#485438',
+            '#E8DDCF', '#5B6849', '#7F8F6A', '#A9B39A', '#745D57', '#6B7A59',
+            '#93A083', '#DFD0C0', '#485438', '#7F8F6A', '#A9B39A', '#5B6849',
+            '#745D57', '#6B7A59', '#93A083', '#E8DDCF', '#7F8F6A', '#A9B39A'
+          ].map((color, idx) => (
+            <div 
+              key={idx} 
+              style={{ 
+                flex: 1, 
+                backgroundColor: color,
+                height: '100%'
+              }} 
+            />
+          ))}
+        </div>
+
+        {/* Camada de Textura de Aquarela estilo hero-bg.png */}
+        <div 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: 'url(/assets/hero-bg.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center bottom',
+            mixBlendMode: 'overlay',
+            opacity: 0.65,
+            pointerEvents: 'none'
+          }} 
+        />
       </div>
     </section>
   );

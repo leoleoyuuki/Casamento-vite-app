@@ -43,11 +43,8 @@ export default function Header() {
         
         {/* Monograma / Logo */}
         <a href="#inicio" style={{ textDecoration: 'none', color: scrolled ? 'var(--color-marrom)' : '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="font-script" style={{ fontSize: '28px', color: scrolled ? 'var(--color-nude-rosado)' : '#FAF6F0', lineHeight: 1 }}>
+          <span className="font-script" style={{ fontSize: '32px', color: scrolled ? 'var(--color-marrom)' : '#FAF6F0', lineHeight: 1 }}>
             A & D
-          </span>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', textShadow: scrolled ? 'none' : '0 1px 4px rgba(0,0,0,0.4)' }}>
-            Ana Clara & Dener
           </span>
         </a>
 
