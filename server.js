@@ -652,6 +652,68 @@ app.post('/api/admin/guests', authenticateAdmin, async (req, res) => {
   }
 });
 
+// Admin Bulk Add Guests (Gerador de Códigos em Massa)
+app.post('/api/admin/guests/bulk', authenticateAdmin, async (req, res) => {
+  if (!db) return res.status(500).json({ success: false, message: 'Banco de dados offline.' });
+  const { guests } = req.body; // Array de { name, code? } ou string de nomes
+  if (!guests || !Array.isArray(guests) || guests.length === 0) {
+    return res.status(400).json({ success: false, message: 'Lista de convidados inválida.' });
+  }
+
+  try {
+    const batch = db.batch();
+    const createdGuests = [];
+
+    // Busca convidados existentes no banco para garantir que não haverá duplicados
+    const existingSnapshot = await db.collection('guests').get();
+    const existingCodes = new Set(existingSnapshot.docs.map(doc => doc.id.toUpperCase()));
+
+    let indexCount = 101;
+    for (const g of guests) {
+      const name = (typeof g === 'string' ? g : (g.name || '')).trim();
+      if (!name) continue;
+
+      let code = (typeof g === 'object' && g.code ? g.code : '').trim().toUpperCase();
+
+      if (!code) {
+        // Gera código limpo baseado no primeiro nome (Ex: MARIANA-101, CARLOS-102)
+        const cleanName = name
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-zA-Z0-9\s]/g, '')
+          .trim()
+          .toUpperCase()
+          .split(/\s+/)[0] || 'CONVITE';
+
+        let candidateCode = `${cleanName}-${indexCount}`;
+        while (existingCodes.has(candidateCode)) {
+          indexCount++;
+          candidateCode = `${cleanName}-${indexCount}`;
+        }
+        code = candidateCode;
+        indexCount++;
+      }
+
+      existingCodes.add(code);
+      const docRef = db.collection('guests').doc(code);
+      batch.set(docRef, { code, name, confirmed: false });
+      createdGuests.push({ code, name });
+    }
+
+    await batch.commit();
+    console.log(`✅ [ADMIN BULK GUESTS] ${createdGuests.length} convites gerados e salvos com sucesso.`);
+
+    res.json({
+      success: true,
+      count: createdGuests.length,
+      createdGuests
+    });
+  } catch (err) {
+    console.error('[ADMIN BULK GUESTS ERRO]:', err);
+    res.status(500).json({ success: false, message: 'Erro ao cadastrar convites em massa: ' + err.message });
+  }
+});
+
 // RSVP Verify Code
 app.post('/api/rsvp/verify', async (req, res) => {
   if (!db) return res.status(500).json({ success: false, message: 'DB offline' });

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, LogOut, MessageSquare, Users, Check, X, Shield, EyeOff, Eye, Plus, Trash2 } from 'lucide-react';
+import { Lock, LogOut, MessageSquare, Users, Check, X, Shield, EyeOff, Eye, Plus, Upload, Download, FileText, Copy, Sparkles } from 'lucide-react';
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
-  const [activeTab, setActiveTab] = useState('messages'); // 'messages' | 'rsvps'
+  const [activeTab, setActiveTab] = useState('messages'); // 'messages' | 'rsvps' | 'gifts'
   const [errorMsg, setErrorMsg] = useState(null);
   
   // Dados
@@ -13,9 +13,15 @@ export default function Admin() {
   const [gifts, setGifts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Formulário de Convidados
+  // Formulário Individual de Convidados
   const [newGuestCode, setNewGuestCode] = useState('');
   const [newGuestName, setNewGuestName] = useState('');
+
+  // Gerador de Convites em Massa (TXT/CSV)
+  const [bulkText, setBulkText] = useState('');
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkResult, setBulkResult] = useState(null);
+  const [showBulkSection, setShowBulkSection] = useState(false);
 
   useEffect(() => {
     const savedToken = localStorage.getItem('adminToken');
@@ -109,6 +115,99 @@ export default function Admin() {
     }
   };
 
+  // Processar Upload de Arquivo TXT ou CSV
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const content = evt.target.result;
+      setBulkText(content);
+    };
+    reader.readAsText(file);
+  };
+
+  // Enviar Lista em Massa para o Servidor
+  const handleBulkSubmit = async (e) => {
+    e.preventDefault();
+    if (!bulkText.trim()) {
+      alert('Por favor, digite os nomes ou faça o upload de um arquivo TXT/CSV.');
+      return;
+    }
+
+    setBulkLoading(true);
+    setBulkResult(null);
+
+    // Converte texto em lista de nomes (separados por quebra de linha ou vírgula)
+    const rawLines = bulkText.split(/\r?\n/);
+    const parsedGuests = [];
+
+    for (let line of rawLines) {
+      line = line.trim();
+      if (!line) continue;
+
+      // Se for CSV (ex: "Maria Silva,MARIA-101" ou apenas "Maria Silva")
+      if (line.includes(',')) {
+        const parts = line.split(',');
+        const namePart = parts[0].trim();
+        const codePart = parts[1] ? parts[1].trim() : undefined;
+        if (namePart) parsedGuests.push({ name: namePart, code: codePart });
+      } else {
+        parsedGuests.push({ name: line });
+      }
+    }
+
+    if (parsedGuests.length === 0) {
+      alert('Nenhum nome válido encontrado no arquivo ou texto.');
+      setBulkLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/guests/bulk', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': password 
+        },
+        body: JSON.stringify({ guests: parsedGuests })
+      });
+
+      const data = await res.json();
+      setBulkLoading(false);
+
+      if (data.success) {
+        setBulkResult(data.createdGuests);
+        loadAdminData(password);
+        setBulkText('');
+      } else {
+        alert(data.message || 'Erro ao gerar convites em massa.');
+      }
+    } catch (err) {
+      setBulkLoading(false);
+      alert('Erro ao conectar ao servidor para geração em massa.');
+    }
+  };
+
+  // Download do Resultado em Arquivo CSV
+  const handleDownloadCSV = () => {
+    if (!bulkResult || bulkResult.length === 0) return;
+
+    let csvContent = "data:text/csv;charset=utf-8,Nome,Codigo do Convite\n";
+    bulkResult.forEach(item => {
+      csvContent += `"${item.name}","${item.code}"\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `convites_casamento_ana_e_dener_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (!isAuthenticated) {
     return (
       <div style={styles.loginWrapper}>
@@ -169,7 +268,6 @@ export default function Admin() {
           style={activeTab === 'gifts' ? styles.activeTab : styles.tab} 
           onClick={() => setActiveTab('gifts')}
         >
-          {/* Note: O ícone Gift precisará ser importado se ainda não estiver, mas usaremos Heart para manter simples caso Gift falhe */}
           <Shield size={18} /> Presentes Recebidos ({gifts.length})
         </button>
       </div>
@@ -204,69 +302,218 @@ export default function Admin() {
         )}
 
         {activeTab === 'rsvps' && (
-          <div style={styles.gridContainer}>
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>Convidados Confirmados</h3>
-              <p style={styles.cardSubtitle}>Pessoas que validaram o código de convite.</p>
-              
-              <div style={styles.listContainer}>
-                {rsvps.filter(r => r.confirmed).length === 0 ? (
-                  <p style={styles.emptyState}>Nenhuma confirmação ainda.</p>
-                ) : (
-                  rsvps.filter(r => r.confirmed).map((rsvp, idx) => (
-                    <div key={idx} style={styles.rsvpItem}>
-                      <div>
-                        <strong>{rsvp.guestName}</strong> 
-                        <span style={styles.codeTag}>{rsvp.code}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            
+            {/* Bloco de Upload e Gerador de Códigos em Massa */}
+            <div style={{...styles.card, border: '1.5px solid var(--color-marrom)', backgroundColor: '#FAF6F0'}}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                  <h3 style={{...styles.cardTitle, color: 'var(--color-marrom)', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    <Sparkles size={20} color="var(--color-marrom)" /> Gerador de Códigos de Convite em Massa
+                  </h3>
+                  <p style={styles.cardSubtitle}>
+                    Faça upload de um arquivo <strong>.TXT</strong> ou <strong>.CSV</strong> contendo a lista de convidados (um por linha) ou cole abaixo. O sistema criará os códigos únicos e os salvará automaticamente no banco.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowBulkSection(!showBulkSection)}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: 'var(--color-marrom)',
+                    color: '#FFF',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: 600
+                  }}
+                >
+                  {showBulkSection ? 'Ocultar Ferramenta' : 'Abrir Gerador em Massa'}
+                </button>
+              </div>
+
+              {showBulkSection && (
+                <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px dashed #D3C3B9' }}>
+                  <form onSubmit={handleBulkSubmit}>
+                    
+                    {/* Botão de Upload de Arquivo TXT / CSV */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '6px' }}>
+                        1. Carregar Arquivo de Lista (.TXT ou .CSV):
+                      </label>
+                      <input 
+                        type="file" 
+                        accept=".txt,.csv" 
+                        onChange={handleFileUpload}
+                        style={{
+                          padding: '10px',
+                          backgroundColor: '#FFF',
+                          border: '1px solid #D3C3B9',
+                          borderRadius: '6px',
+                          width: '100%',
+                          fontSize: '13px'
+                        }}
+                      />
+                    </div>
+
+                    {/* Textarea para Colar Nomes */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '6px' }}>
+                        2. Ou cole/edite a lista de convidados (um nome por linha):
+                      </label>
+                      <textarea
+                        rows="6"
+                        placeholder="Exemplo:&#10;Leonardo Yuuki&#10;Mariana Silva&#10;Família Allemany&#10;Carlos Eduardo"
+                        value={bulkText}
+                        onChange={(e) => setBulkText(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          border: '1px solid #D3C3B9',
+                          fontFamily: 'monospace',
+                          fontSize: '13px',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      disabled={bulkLoading}
+                      style={{
+                        padding: '12px 24px',
+                        backgroundColor: '#7F8F6A',
+                        color: '#FFF',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '14px'
+                      }}
+                    >
+                      {bulkLoading ? 'Gerando Códigos no Banco...' : '⚡ Gerar Códigos e Cadastrar no Banco'}
+                    </button>
+                  </form>
+
+                  {/* Exibição dos Códigos Gerados */}
+                  {bulkResult && (
+                    <div style={{ marginTop: '24px', padding: '20px', backgroundColor: '#FFF', borderRadius: '8px', border: '1px solid #A9B39A' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                        <h4 style={{ margin: 0, color: 'var(--color-marrom)', fontSize: '16px' }}>
+                          ✅ {bulkResult.length} Convites Gerados e Salvos no Banco!
+                        </h4>
+                        <button
+                          onClick={handleDownloadCSV}
+                          style={{
+                            padding: '8px 14px',
+                            backgroundColor: 'var(--color-marrom)',
+                            color: '#FFF',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          <Download size={14} /> Baixar Lista em CSV
+                        </button>
                       </div>
-                      <div style={styles.rsvpDetails}>
-                        {rsvp.message && <p style={styles.rsvpNotes}>Obs: {rsvp.message}</p>}
-                        <small>{rsvp.confirmedAt ? new Date(rsvp.confirmedAt._seconds * 1000).toLocaleString('pt-BR') : 'Data Indisponível'}</small>
+
+                      <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #EEE', borderRadius: '6px' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
+                          <thead>
+                            <tr style={{ backgroundColor: '#FAF6F0', borderBottom: '1px solid #DDD' }}>
+                              <th style={{ padding: '8px 12px' }}>Nome do Convidado</th>
+                              <th style={{ padding: '8px 12px' }}>Código do Convite Gerado</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {bulkResult.map((item, i) => (
+                              <tr key={i} style={{ borderBottom: '1px solid #EEE' }}>
+                                <td style={{ padding: '8px 12px' }}>{item.name}</td>
+                                <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontWeight: 'bold', color: 'var(--color-marrom)' }}>{item.code}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>Gerenciar Convites</h3>
-              <p style={styles.cardSubtitle}>Crie novos códigos para seus convidados.</p>
-              
-              <form onSubmit={handleAddGuest} style={styles.addGuestForm}>
-                <div style={styles.inputGroup}>
-                  <label>Código do Convite</label>
-                  <input 
-                    type="text" 
-                    placeholder="Ex: FAMILIA-SILVA" 
-                    value={newGuestCode}
-                    onChange={(e) => setNewGuestCode(e.target.value)}
-                    style={styles.input}
-                  />
+            <div style={styles.gridContainer}>
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>Convidados Confirmados</h3>
+                <p style={styles.cardSubtitle}>Pessoas que validaram o código de convite.</p>
+                
+                <div style={styles.listContainer}>
+                  {rsvps.filter(r => r.confirmed).length === 0 ? (
+                    <p style={styles.emptyState}>Nenhuma confirmação ainda.</p>
+                  ) : (
+                    rsvps.filter(r => r.confirmed).map((rsvp, idx) => (
+                      <div key={idx} style={styles.rsvpItem}>
+                        <div>
+                          <strong>{rsvp.guestName}</strong> 
+                          <span style={styles.codeTag}>{rsvp.code}</span>
+                        </div>
+                        <div style={styles.rsvpDetails}>
+                          {rsvp.message && <p style={styles.rsvpNotes}>Obs: {rsvp.message}</p>}
+                          <small>{rsvp.confirmedAt ? new Date(rsvp.confirmedAt._seconds ? rsvp.confirmedAt._seconds * 1000 : rsvp.confirmedAt).toLocaleString('pt-BR') : 'Data Indisponível'}</small>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
-                <div style={styles.inputGroup}>
-                  <label>Nome Principal</label>
-                  <input 
-                    type="text" 
-                    placeholder="Ex: Família Silva" 
-                    value={newGuestName}
-                    onChange={(e) => setNewGuestName(e.target.value)}
-                    style={styles.input}
-                  />
-                </div>
-                <button type="submit" style={styles.addBtn}>
-                  <Plus size={18} /> Adicionar Convite
-                </button>
-              </form>
+              </div>
 
-              <h4 style={{marginTop: 30, color: '#555', fontFamily: 'Inter'}}>Convites Pendentes (Não confirmados)</h4>
-              <div style={styles.pendingList}>
-                {rsvps.filter(r => !r.confirmed).map((g, idx) => (
-                  <div key={idx} style={styles.pendingItem}>
-                    <span>{g.name}</span>
-                    <span style={styles.codeTag}>{g.code}</span>
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>Gerenciar Convites Individuais</h3>
+                <p style={styles.cardSubtitle}>Crie códigos manualmente para seus convidados.</p>
+                
+                <form onSubmit={handleAddGuest} style={styles.addGuestForm}>
+                  <div style={styles.inputGroup}>
+                    <label>Código do Convite</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ex: FAMILIA-SILVA" 
+                      value={newGuestCode}
+                      onChange={(e) => setNewGuestCode(e.target.value)}
+                      style={styles.input}
+                    />
                   </div>
-                ))}
+                  <div style={styles.inputGroup}>
+                    <label>Nome Principal</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ex: Família Silva" 
+                      value={newGuestName}
+                      onChange={(e) => setNewGuestName(e.target.value)}
+                      style={styles.input}
+                    />
+                  </div>
+                  <button type="submit" style={styles.addBtn}>
+                    <Plus size={18} /> Adicionar Convite Individual
+                  </button>
+                </form>
+
+                <h4 style={{marginTop: 30, color: '#555', fontFamily: 'Inter'}}>Convites Pendentes (Não confirmados - Total: {rsvps.filter(r => !r.confirmed).length})</h4>
+                <div style={{...styles.pendingList, maxHeight: '300px', overflowY: 'auto'}}>
+                  {rsvps.filter(r => !r.confirmed).map((g, idx) => (
+                    <div key={idx} style={styles.pendingItem}>
+                      <span>{g.name}</span>
+                      <span style={styles.codeTag}>{g.code}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -281,7 +528,7 @@ export default function Admin() {
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              justify: 'space-between',
+              justifyContent: 'space-between',
               flexWrap: 'wrap',
               gap: '12px',
               marginBottom: '10px',
