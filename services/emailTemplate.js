@@ -5,7 +5,7 @@ export const getThankYouEmailTemplate = (guestName = 'Convidado Querido', giftTi
 
   const appUrl = process.env.PUBLIC_URL || process.env.VERCEL_URL 
     ? (process.env.PUBLIC_URL || `https://${process.env.VERCEL_URL}`)
-    : 'https://casamento-ana-e-dener.vercel.app';
+    : 'https://anaclaraedener.com.br/';
 
   const photoUrl = `${appUrl}/assets/00003028-PHOTO-2026-08-02-17-36-05.jpg`;
 
