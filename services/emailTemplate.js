@@ -14,26 +14,35 @@ export const getThankYouEmailTemplate = (guestName = 'Convidado Querido', giftTi
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>Muito Obrigado pelo seu Presente! | Ana Clara & Dener</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Pinyon+Script&family=Great+Vibes&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Pinyon+Script&display=swap');
+    /* Reset & Fonts strictly enforcement */
+    body, table, td, p, div, span, a, h1, h2, h3 { 
+      font-family: 'Cormorant Garamond', Georgia, serif !important; 
+    }
     
-    /* Reset CSS */
+    .script-title {
+      font-family: 'Sloop Script Pro', 'Sloop Script', 'Pinyon Script', 'Great Vibes', cursive !important;
+    }
+
     body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
     table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
     table { border-collapse: collapse !important; }
-    body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #FAF6F0; color: #745D57; font-family: 'Cormorant Garamond', Georgia, serif; }
+    body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #FAF6F0; color: #745D57; }
 
     /* Media Queries */
     @media screen and (max-width: 600px) {
       .email-container { width: 100% !important; padding: 16px !important; }
       .card-body { padding: 24px 20px !important; }
       .hero-title { font-size: 28px !important; }
-      .script-title { font-size: 36px !important; }
+      .script-title { font-size: 42px !important; }
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #FAF6F0;">
+<body style="margin: 0; padding: 0; background-color: #FAF6F0; font-family: 'Cormorant Garamond', Georgia, serif;">
 
   <!-- Contêiner Principal -->
   <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #FAF6F0; padding: 30px 0;">
@@ -120,8 +129,8 @@ export const getThankYouEmailTemplate = (guestName = 'Convidado Querido', giftTi
               <!-- Divisória Elegante -->
               <div style="height: 1px; background-color: #E8DDCF; width: 80px; margin: 0 auto 28px auto;"></div>
 
-              <!-- Destaque: Nomes dos Noivos em Sloop Script Pro -->
-              <div class="script-title" style="font-family: 'Sloop Script Pro', 'Sloop Script', 'Pinyon Script', 'Great Vibes', cursive; font-size: 46px; color: #745D57; line-height: 1.2; margin-bottom: 6px;">
+              <!-- Destaque: Nomes dos Noivos em Sloop Script / Pinyon Script Webfont -->
+              <div class="script-title" style="font-family: 'Sloop Script Pro', 'Sloop Script', 'Pinyon Script', 'Great Vibes', cursive !important; font-size: 52px; color: #745D57; line-height: 1.2; margin-bottom: 6px; font-weight: 400;">
                 Ana Clara & Dener
               </div>
 
