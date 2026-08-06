@@ -68,11 +68,11 @@ export default function Hero() {
           lineHeight: 1.5,
           maxWidth: '600px',
           margin: '0 auto 28px',
-          textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+          textShadow: '0 2px 10px rgba(0,0,0,0.85)',
           letterSpacing: '0.01em'
         }}>
           "Acima de tudo, porém, revistam-se do amor, que é o elo da perfeição."
-          <span style={{ display: 'block', fontSize: '0.85em', fontStyle: 'normal', fontFamily: 'var(--font-sans)', fontWeight: 500, opacity: 0.85, marginTop: '4px' }}>
+          <span style={{ display: 'block', fontSize: '0.85em', fontStyle: 'normal', fontFamily: 'var(--font-sans)', fontWeight: 600, color: '#FFFFFF', opacity: 1, marginTop: '6px', textShadow: '0 2px 10px rgba(0,0,0,0.85)' }}>
             — Colossenses 3:14
           </span>
         </p>

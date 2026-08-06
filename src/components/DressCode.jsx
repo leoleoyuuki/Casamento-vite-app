@@ -81,7 +81,7 @@ export default function DressCode() {
             </p>
             
             <p style={{ fontSize: '15px', color: 'var(--text-muted)', lineHeight: 1.8, marginBottom: '24px' }}>
-              Sugerimos o traje <strong>Esporte Fino</strong>, ideal para um casamento diurno ao ar livre.
+              Sugerimos o traje <strong>Esporte Fino</strong>, ideal para a nossa celebração diurna.
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', textAlign: 'left', marginTop: '32px' }}>
