@@ -3,9 +3,7 @@ export const getThankYouEmailTemplate = (guestName = 'Convidado Querido', giftTi
     ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount)
     : null;
 
-  const appUrl = process.env.PUBLIC_URL || process.env.VERCEL_URL 
-    ? (process.env.PUBLIC_URL || `https://${process.env.VERCEL_URL}`)
-    : 'https://anaclaraedener.com.br/';
+  const appUrl = 'https://anaclaraedener.com.br';
 
   const photoUrl = `${appUrl}/assets/00003028-PHOTO-2026-08-02-17-36-05.jpg`;
 
