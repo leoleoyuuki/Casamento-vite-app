@@ -4,7 +4,6 @@ export const getThankYouEmailTemplate = (guestName = 'Convidado Querido', giftTi
     : null;
 
   const appUrl = 'https://anaclaraedener.com.br';
-
   const photoUrl = `${appUrl}/assets/00003028-PHOTO-2026-08-02-17-36-05.jpg`;
 
   return `
@@ -16,21 +15,21 @@ export const getThankYouEmailTemplate = (guestName = 'Convidado Querido', giftTi
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>Muito Obrigado pelo seu Presente! | Ana Clara & Dener</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Pinyon+Script&family=Inter:wght@300;400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Pinyon+Script&display=swap');
     
     /* Reset CSS */
     body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
     table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
     table { border-collapse: collapse !important; }
-    body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #FAF6F0; color: #745D57; font-family: 'Inter', Helvetica, Arial, sans-serif; }
+    body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #FAF6F0; color: #745D57; font-family: 'Cormorant Garamond', Georgia, serif; }
 
     /* Media Queries */
     @media screen and (max-width: 600px) {
       .email-container { width: 100% !important; padding: 16px !important; }
       .card-body { padding: 24px 20px !important; }
       .hero-title { font-size: 28px !important; }
-      .script-title { font-size: 34px !important; }
+      .script-title { font-size: 36px !important; }
     }
   </style>
 </head>
@@ -47,10 +46,10 @@ export const getThankYouEmailTemplate = (guestName = 'Convidado Querido', giftTi
           <!-- Cabeçalho com Monograma -->
           <tr>
             <td align="center" style="padding: 36px 30px 20px; background-color: #FAF6F0; border-bottom: 1px solid #E8DDCF;">
-              <div style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 26px; font-weight: 700; color: #745D57; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 4px;">
+              <div style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 28px; font-weight: 700; color: #745D57; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 4px;">
                 A & D
               </div>
-              <div style="font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; color: #7F8F6A; letter-spacing: 0.25em; text-transform: uppercase;">
+              <div style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 13px; font-weight: 600; color: #7F8F6A; letter-spacing: 0.25em; text-transform: uppercase;">
                 CASAMENTO · 28.11.2026
               </div>
             </td>
@@ -74,8 +73,8 @@ export const getThankYouEmailTemplate = (guestName = 'Convidado Querido', giftTi
             <td class="card-body" style="padding: 36px 40px; text-align: center;">
               
               <!-- Subtítulo / Badge de Agradecimento -->
-              <div style="display: inline-block; padding: 6px 16px; background-color: rgba(127, 143, 106, 0.12); border-radius: 20px; margin-bottom: 20px;">
-                <span style="font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #7F8F6A; letter-spacing: 0.1em; text-transform: uppercase;">
+              <div style="display: inline-block; padding: 6px 18px; background-color: rgba(127, 143, 106, 0.12); border-radius: 20px; margin-bottom: 20px;">
+                <span style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 13px; font-weight: 600; color: #7F8F6A; letter-spacing: 0.12em; text-transform: uppercase;">
                   💖 AGRADECIMENTO ESPECIAL
                 </span>
               </div>
@@ -85,12 +84,12 @@ export const getThankYouEmailTemplate = (guestName = 'Convidado Querido', giftTi
                 Recebemos o seu carinho!
               </h1>
 
-              <p style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 21px; font-style: italic; color: #745D57; margin: 0 0 24px 0; line-height: 1.5;">
+              <p style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-style: italic; color: #745D57; margin: 0 0 24px 0; line-height: 1.5;">
                 "Querido(a) ${guestName},"
               </p>
 
-              <!-- Texto do E-mail -->
-              <p style="font-family: 'Inter', sans-serif; font-size: 15px; color: #5C4A45; line-height: 1.8; margin: 0 0 28px 0; text-align: center;">
+              <!-- Texto do E-mail (Texto Corrido em Cormorant Garamond) -->
+              <p style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 19px; color: #5C4A45; line-height: 1.7; margin: 0 0 28px 0; text-align: center;">
                 Nosso coração transborda de alegria e gratidão ao receber o seu presente! Saber que temos o seu carinho e apoio neste capítulo tão abençoado das nossas vidas torna tudo ainda mais inesquecível.
               </p>
 
@@ -98,14 +97,14 @@ export const getThankYouEmailTemplate = (guestName = 'Convidado Querido', giftTi
               <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #FAF6F0; border-radius: 12px; border: 1px dashed #745D57; margin-bottom: 32px;">
                 <tr>
                   <td style="padding: 20px; text-align: center;">
-                    <div style="font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; color: #7F8F6A; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 6px;">
+                    <div style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 12px; font-weight: 600; color: #7F8F6A; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 6px;">
                       PRESENTE RECEBIDO
                     </div>
-                    <div style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 700; color: #745D57; margin-bottom: 4px;">
+                    <div style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 24px; font-weight: 700; color: #745D57; margin-bottom: 4px;">
                       ${giftTitle}
                     </div>
                     ${formattedAmount ? `
-                      <div style="font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #7F8F6A;">
+                      <div style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 17px; font-weight: 600; color: #7F8F6A;">
                         ${formattedAmount}
                       </div>
                     ` : ''}
@@ -113,20 +112,20 @@ export const getThankYouEmailTemplate = (guestName = 'Convidado Querido', giftTi
                 </tr>
               </table>
 
-              <!-- Mensagem de Encerramento -->
-              <p style="font-family: 'Inter', sans-serif; font-size: 14px; color: #745D57; line-height: 1.7; margin: 0 0 28px 0;">
+              <!-- Mensagem de Encerramento (Cormorant Garamond) -->
+              <p style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 18px; color: #745D57; line-height: 1.7; margin: 0 0 28px 0;">
                 Mal podemos esperar para abraçar você e celebrar juntos o nosso grande dia!
               </p>
 
               <!-- Divisória Elegante -->
               <div style="height: 1px; background-color: #E8DDCF; width: 80px; margin: 0 auto 28px auto;"></div>
 
-              <!-- Assinatura em Script dos Noivos -->
-              <div style="font-family: 'Pinyon Script', 'Great Vibes', cursive; font-size: 42px; color: #745D57; line-height: 1.2; margin-bottom: 6px;">
+              <!-- Destaque: Nomes dos Noivos em Sloop Script Pro -->
+              <div class="script-title" style="font-family: 'Sloop Script Pro', 'Sloop Script', 'Pinyon Script', 'Great Vibes', cursive; font-size: 46px; color: #745D57; line-height: 1.2; margin-bottom: 6px;">
                 Ana Clara & Dener
               </div>
 
-              <div style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 15px; color: #7F8F6A; letter-spacing: 0.05em;">
+              <div style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 16px; color: #7F8F6A; letter-spacing: 0.05em; font-style: italic;">
                 Com todo o nosso amor e gratidão 🤍
               </div>
 
@@ -136,10 +135,10 @@ export const getThankYouEmailTemplate = (guestName = 'Convidado Querido', giftTi
           <!-- Rodapé do E-mail -->
           <tr>
             <td align="center" style="padding: 24px 30px; background-color: #FAF6F0; border-top: 1px solid #E8DDCF; text-align: center;">
-              <p style="font-family: 'Inter', sans-serif; font-size: 12px; color: #9A857F; margin: 0 0 6px 0;">
+              <p style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 14px; color: #9A857F; margin: 0 0 4px 0;">
                 Casamento Ana Clara & Dener — 28 de Novembro de 2026
               </p>
-              <p style="font-family: 'Inter', sans-serif; font-size: 11px; color: #B5A6A1; margin: 0;">
+              <p style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 13px; color: #B5A6A1; margin: 0;">
                 São Bernardo do Campo, SP
               </p>
             </td>
