@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, LogOut, MessageSquare, Users, Check, X, Shield, EyeOff, Eye, Plus, Upload, Download, FileText, Copy, Sparkles } from 'lucide-react';
+import { Lock, LogOut, MessageSquare, Users, Check, X, Shield, EyeOff, Eye, Plus, Upload, Download, FileText, Copy, Sparkles, Smartphone, RefreshCw, Send, Radio } from 'lucide-react';
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -12,6 +12,14 @@ export default function Admin() {
   const [rsvps, setRsvps] = useState([]);
   const [gifts, setGifts] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // WhatsApp State
+  const [waStatus, setWaStatus] = useState({ status: 'DISCONNECTED', isConnected: false, qrCode: null, user: null });
+  const [waLoading, setWaLoading] = useState(false);
+  const [testPhone, setTestPhone] = useState('');
+  const [testMsg, setTestMsg] = useState('');
+  const [testSending, setTestSending] = useState(false);
+  const [testResponse, setTestResponse] = useState(null);
 
   // Formulário Individual de Convidados
   const [newGuestCode, setNewGuestCode] = useState('');
@@ -87,8 +95,86 @@ export default function Admin() {
       const giftsData = await giftsRes.json();
       if (giftsData.success) setGifts(giftsData.gifts);
 
+      // Buscar Status do WhatsApp
+      loadWhatsAppStatus();
+
     } catch (err) {
       console.error('Erro ao carregar dados do admin', err);
+    }
+  };
+
+  const loadWhatsAppStatus = async () => {
+    try {
+      const res = await fetch('/api/whatsapp/status');
+      const data = await res.json();
+      if (data.success) {
+        setWaStatus(data);
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar status do WhatsApp:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated || activeTab !== 'whatsapp') return;
+    loadWhatsAppStatus();
+    const interval = setInterval(() => {
+      loadWhatsAppStatus();
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, activeTab]);
+
+  const handleConnectWhatsApp = async () => {
+    setWaLoading(true);
+    try {
+      const res = await fetch('/api/whatsapp/connect', { method: 'POST' });
+      const data = await res.json();
+      setWaLoading(false);
+      if (data.success) {
+        setWaStatus(data);
+      }
+    } catch (err) {
+      setWaLoading(false);
+      alert('Erro ao conectar ao WhatsApp.');
+    }
+  };
+
+  const handleLogoutWhatsApp = async () => {
+    if (!confirm('Deseja realmente desconectar o WhatsApp?')) return;
+    setWaLoading(true);
+    try {
+      const res = await fetch('/api/whatsapp/logout', { method: 'POST' });
+      const data = await res.json();
+      setWaLoading(false);
+      if (data.success) {
+        loadWhatsAppStatus();
+      }
+    } catch (err) {
+      setWaLoading(false);
+      alert('Erro ao desconectar WhatsApp.');
+    }
+  };
+
+  const handleSendTestMessage = async (e) => {
+    e.preventDefault();
+    if (!testPhone.trim()) {
+      alert('Por favor, digite um número de WhatsApp com DDD para o teste.');
+      return;
+    }
+    setTestSending(true);
+    setTestResponse(null);
+    try {
+      const res = await fetch('/api/whatsapp/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: testPhone, message: testMsg })
+      });
+      const data = await res.json();
+      setTestSending(false);
+      setTestResponse(data);
+    } catch (err) {
+      setTestSending(false);
+      setTestResponse({ success: false, message: 'Erro de comunicação ao enviar mensagem.' });
     }
   };
 
@@ -269,6 +355,12 @@ export default function Admin() {
           onClick={() => setActiveTab('gifts')}
         >
           <Shield size={18} /> Presentes Recebidos ({gifts.length})
+        </button>
+        <button 
+          style={activeTab === 'whatsapp' ? styles.activeTab : styles.tab} 
+          onClick={() => setActiveTab('whatsapp')}
+        >
+          <Smartphone size={18} /> WhatsApp Noivos {waStatus.isConnected ? '🟢' : (waStatus.qrCode ? '🟡' : '⚪')}
         </button>
       </div>
 
@@ -572,7 +664,9 @@ export default function Admin() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <p style={{ margin: '5px 0', fontSize: '14px', color: '#555' }}>
                         De: <strong>{gift.guestName}</strong> <br/>
-                        <small>{gift.guestEmail}</small>
+                        <small style={{ color: 'var(--color-verde-oliva)', fontWeight: 600 }}>
+                          {gift.guestPhone ? `📱 ${gift.guestPhone}` : (gift.guestEmail ? `✉️ ${gift.guestEmail}` : 'Sem telefone')}
+                        </small>
                       </p>
                       <h4 style={{ margin: 0, fontSize: '20px', color: 'var(--color-verde-oliva)' }}>
                         R$ {Number(gift.amount).toFixed(2).replace('.', ',')}
@@ -586,6 +680,194 @@ export default function Admin() {
                 ))
               )}
             </div>
+          </div>
+        )}
+
+        {/* Aba de Gerenciamento do WhatsApp */}
+        {activeTab === 'whatsapp' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            
+            {/* Status Card Principal */}
+            <div style={styles.card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                <div>
+                  <h3 style={{ ...styles.cardTitle, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Smartphone size={22} color="var(--color-marrom)" /> 
+                    Conexão do WhatsApp dos Noivos
+                  </h3>
+                  <p style={styles.cardSubtitle}>
+                    O sistema utiliza o WhatsApp dos noivos via Baileys para enviar mensagens de agradecimento automáticas aos convidados que presentearem o casal.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button 
+                    onClick={loadWhatsAppStatus} 
+                    style={{ ...styles.addGuestBtn, backgroundColor: '#EEE', color: '#333' }}
+                    title="Atualizar Status"
+                  >
+                    <RefreshCw size={16} /> Atualizar
+                  </button>
+                  {waStatus.isConnected && (
+                    <button 
+                      onClick={handleLogoutWhatsApp} 
+                      style={{ ...styles.addGuestBtn, backgroundColor: '#FDE8E8', color: '#9B1C1C' }}
+                    >
+                      <LogOut size={16} /> Desconectar
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Status do WhatsApp */}
+              {waStatus.isConnected ? (
+                /* Conectado */
+                <div style={{ padding: '24px', backgroundColor: '#EAF8EE', borderRadius: '12px', border: '1px solid #A3E6B4' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+                    <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: '#2ECC71' }}></div>
+                    <h4 style={{ margin: 0, color: '#1E7E34', fontSize: '18px' }}>
+                      WhatsApp Conectado e Pronto para Envios!
+                    </h4>
+                  </div>
+                  <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#2D6A4F' }}>
+                    Todas as confirmações de presentes recebidos dispararão automaticamente uma mensagem carinhosa para o WhatsApp do convidado.
+                  </p>
+                  {waStatus.user?.id && (
+                    <div style={{ fontSize: '12px', color: '#555', backgroundColor: '#FFF', padding: '8px 12px', borderRadius: '6px', display: 'inline-block' }}>
+                      Sessão ativa: <strong>{waStatus.user.id.split(':')[0] || waStatus.user.id}</strong>
+                    </div>
+                  )}
+                </div>
+              ) : waStatus.qrCode ? (
+                /* QR Code Pronto para Escaneamento */
+                <div style={{ padding: '24px', backgroundColor: '#FFF9E6', borderRadius: '12px', border: '1px solid #F5D77F', textAlign: 'center' }}>
+                  <h4 style={{ color: '#B7791F', fontSize: '20px', marginBottom: '8px' }}>
+                    📱 Escaneie o QR Code com o WhatsApp dos Noivos
+                  </h4>
+                  <p style={{ fontSize: '14px', color: '#744210', maxWidth: '500px', margin: '0 auto 20px auto', lineHeight: 1.5 }}>
+                    1. Abra o WhatsApp no celular dos noivos.<br />
+                    2. Vá em <strong>Configurações</strong> &gt; <strong>Aparelhos Conectados</strong> &gt; <strong>Conectar Aparelho</strong>.<br />
+                    3. Aponte a câmera para o QR Code abaixo:
+                  </p>
+
+                  <div style={{ display: 'inline-block', padding: '16px', backgroundColor: '#FFF', borderRadius: '16px', boxShadow: '0 8px 25px rgba(0,0,0,0.1)', marginBottom: '16px' }}>
+                    <img 
+                      src={waStatus.qrCode} 
+                      alt="QR Code WhatsApp" 
+                      style={{ width: '260px', height: '260px', display: 'block' }} 
+                    />
+                  </div>
+
+                  <div>
+                    <button 
+                      onClick={handleConnectWhatsApp} 
+                      disabled={waLoading}
+                      style={{ ...styles.addGuestBtn, margin: '0 auto', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                    >
+                      <RefreshCw size={16} className={waLoading ? 'spin' : ''} /> 
+                      {waLoading ? 'Gerando novo código...' : 'Gerar Novo QR Code'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Desconectado */
+                <div style={{ padding: '30px', backgroundColor: '#F8F9FA', borderRadius: '12px', border: '1px dashed #CCC', textAlign: 'center' }}>
+                  <Smartphone size={48} color="#888" style={{ marginBottom: '12px' }} />
+                  <h4 style={{ color: '#444', fontSize: '18px', marginBottom: '8px' }}>
+                    WhatsApp Desconectado
+                  </h4>
+                  <p style={{ fontSize: '14px', color: '#666', maxWidth: '450px', margin: '0 auto 20px auto' }}>
+                    Clique no botão abaixo para iniciar o cliente e gerar o QR Code de conexão.
+                  </p>
+                  <button 
+                    onClick={handleConnectWhatsApp} 
+                    disabled={waLoading}
+                    style={{ ...styles.addGuestBtn, padding: '12px 24px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    <Smartphone size={18} /> 
+                    {waLoading ? 'Iniciando WhatsApp...' : 'Conectar WhatsApp dos Noivos'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Ferramenta de Teste de Envio */}
+            <div style={styles.card}>
+              <h3 style={{ ...styles.cardTitle, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Send size={20} color="var(--color-marrom)" /> 
+                Testar Envio de Mensagem no WhatsApp
+              </h3>
+              <p style={styles.cardSubtitle}>
+                Envie uma mensagem de teste para o seu próprio número ou de um padrinho para validar a entrega.
+              </p>
+
+              <form onSubmit={handleSendTestMessage} style={{ maxWidth: '600px' }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '6px' }}>
+                    Número com DDD (ex: 11987654321): *
+                  </label>
+                  <input 
+                    type="tel" 
+                    required
+                    placeholder="11987654321" 
+                    value={testPhone} 
+                    onChange={(e) => setTestPhone(e.target.value)}
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '6px' }}>
+                    Mensagem Opcional (deixe em branco para usar o texto padrão):
+                  </label>
+                  <textarea 
+                    rows={3}
+                    placeholder="✨ Teste de envio de mensagem de casamento Ana Clara & Dener!" 
+                    value={testMsg} 
+                    onChange={(e) => setTestMsg(e.target.value)}
+                    style={{ ...styles.input, resize: 'vertical' }}
+                  />
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={testSending || !waStatus.isConnected}
+                  style={{ 
+                    ...styles.addGuestBtn, 
+                    padding: '12px 24px', 
+                    fontSize: '14px', 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '8px',
+                    opacity: (!waStatus.isConnected || testSending) ? 0.6 : 1,
+                    cursor: (!waStatus.isConnected || testSending) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <Send size={16} /> 
+                  {testSending ? 'Enviando mensagem...' : 'Enviar Mensagem de Teste'}
+                </button>
+
+                {!waStatus.isConnected && (
+                  <p style={{ fontSize: '12px', color: '#D35400', marginTop: '8px' }}>
+                    ⚠️ Conecte o WhatsApp dos noivos acima para poder enviar mensagens de teste.
+                  </p>
+                )}
+
+                {testResponse && (
+                  <div style={{ 
+                    marginTop: '16px', 
+                    padding: '12px 16px', 
+                    borderRadius: '8px', 
+                    fontSize: '13px',
+                    backgroundColor: testResponse.success ? '#EAF8EE' : '#FDE8E8',
+                    color: testResponse.success ? '#1E7E34' : '#9B1C1C'
+                  }}>
+                    {testResponse.message}
+                  </div>
+                )}
+              </form>
+            </div>
+
           </div>
         )}
       </div>

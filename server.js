@@ -2,11 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import QRCode from 'qrcode';
-import { Resend } from 'resend';
-import { getThankYouEmailTemplate } from './services/emailTemplate.js';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import fs from 'fs';
+import { 
+  initWhatsAppClient, 
+  getWhatsAppStatus, 
+  sendGiftThankYouWhatsApp, 
+  sendWhatsAppTextMessage, 
+  logoutWhatsApp 
+} from './services/whatsappService.js';
 
 dotenv.config();
 
@@ -35,7 +40,10 @@ try {
   console.error("⚠️ [FIREBASE] Erro crítico ao conectar banco:", err.message);
 }
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Inicializar cliente do WhatsApp (Modo Apenas Envio)
+initWhatsAppClient().catch(err => {
+  console.warn('⚠️ [WHATSAPP] Inicialização em segundo plano:', err.message);
+});
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -109,9 +117,9 @@ app.post('/api/asaas/installments', (req, res) => {
 // 2. Criar Cobrança PIX no Asaas
 app.post('/api/asaas/pix', async (req, res) => {
   try {
-    const { giftTitle, amount, guestName, guestEmail, guestCpf } = req.body;
+    const { giftTitle, amount, guestName, guestPhone, guestEmail, guestCpf } = req.body;
     
-    console.log(`[ASAAS PIX] Gerando PIX para ${guestName} - Presente: ${giftTitle} (R$ ${amount})`);
+    console.log(`[ASAAS PIX] Gerando PIX para ${guestName} (${guestPhone || 'sem telefone'}) - Presente: ${giftTitle} (R$ ${amount})`);
     
     // Se houver chave API válida no Asaas
     if (process.env.ASAAS_API_KEY) {
@@ -121,7 +129,8 @@ app.post('/api/asaas/pix', async (req, res) => {
         headers: getAsaasHeaders(),
         body: JSON.stringify({
           name: guestName || 'Convidado Casamento',
-          email: guestEmail || 'convidado@exemplo.com',
+          email: guestEmail || 'convidado@casamento.com',
+          mobilePhone: guestPhone ? guestPhone.replace(/\D/g, '') : undefined,
           cpfCnpj: guestCpf || '00000000000'
         })
       });
@@ -190,8 +199,8 @@ function generateValidCPF() {
 // 2. Criar Cobrança e Gerar Link para o Checkout Hospedado Oficial do Asaas (invoiceUrl)
 app.post('/api/asaas/create-checkout', async (req, res) => {
   try {
-    const { giftTitle, amount, guestName, guestEmail, guestCpf } = req.body;
-    console.log(`[ASAAS CHECKOUT HOSPEDADO] Gerando checkout para presente "${giftTitle}" (R$ ${amount}) - Convidado: ${guestName}`);
+    const { giftTitle, amount, guestName, guestPhone, guestEmail, guestCpf } = req.body;
+    console.log(`[ASAAS CHECKOUT HOSPEDADO] Gerando checkout para presente "${giftTitle}" (R$ ${amount}) - Convidado: ${guestName} (${guestPhone || 'sem telefone'})`);
 
     const apiKey = (process.env.ASAAS_API_KEY || '').trim();
     
@@ -215,6 +224,7 @@ app.post('/api/asaas/create-checkout', async (req, res) => {
       body: JSON.stringify({
         name: guestName || 'Convidado de Casamento',
         email: guestEmail || 'convidado@casamento.com',
+        mobilePhone: guestPhone ? guestPhone.replace(/\D/g, '') : undefined,
         cpfCnpj: finalCpf
       })
     });
@@ -230,6 +240,7 @@ app.post('/api/asaas/create-checkout', async (req, res) => {
         body: JSON.stringify({
           name: guestName || 'Convidado de Casamento',
           email: guestEmail || 'convidado@casamento.com',
+          mobilePhone: guestPhone ? guestPhone.replace(/\D/g, '') : undefined,
           cpfCnpj: finalCpf
         })
       });
@@ -277,6 +288,7 @@ app.post('/api/asaas/create-checkout', async (req, res) => {
           giftTitle: giftTitle,
           amount: parseFloat(amount),
           guestName: guestName || 'Amigo(a)',
+          guestPhone: guestPhone || '',
           guestEmail: guestEmail || '',
           guestCpf: finalCpf,
           status: 'PENDING',
@@ -456,58 +468,76 @@ app.post('/api/asaas/webhook', async (req, res) => {
     case 'PAYMENT_CONFIRMED':
       console.log(`✅ [WEBHOOK] Pagamento confirmado com sucesso para ${payment?.description || 'Presente'}!`);
       
-      // Atualizar status no Firestore para PAID
+      let guestPhone = null;
+      let guestName = 'Amigo(a)';
+      let giftTitle = payment?.description || 'Presente de Casamento';
+
+      // 1. Atualizar status no Firestore para PAID e buscar dados salvos
       try {
         if (db && payment?.id) {
-          await db.collection('gifts').doc(payment.id).update({
+          const giftDocRef = db.collection('gifts').doc(payment.id);
+          const docSnap = await giftDocRef.get();
+          
+          if (docSnap.exists) {
+            const giftData = docSnap.data();
+            guestPhone = giftData.guestPhone || giftData.phone;
+            guestName = giftData.guestName || guestName;
+            giftTitle = giftData.giftTitle || giftTitle;
+          }
+
+          await giftDocRef.set({
             status: 'PAID',
             paidAt: FieldValue.serverTimestamp()
-          });
+          }, { merge: true });
+          
           console.log(`[FIRESTORE] Presente atualizado para PAID: ${payment.id}`);
         }
       } catch (fsErr) {
         console.error('[FIRESTORE ERRO] Falha ao atualizar presente para PAID:', fsErr);
       }
       
-      // Enviar e-mail de agradecimento aos convidados
-      try {
-        let guestEmail = 'leoyuuki2005@gmail.com'; // O Resend requer este email no Sandbox
-        let guestName = 'Amigo(a)';
-        
-        // Buscar os detalhes do cliente direto do Asaas
-        if (payment?.customer && !payment.customer.includes('mock')) {
-          try {
-            const baseUrl = getAsaasBaseUrl();
-            const customerRes = await fetch(`${baseUrl}/customers/${payment.customer}`, {
-              headers: getAsaasHeaders()
-            });
-            if (customerRes.ok) {
-              const customerData = await customerRes.json();
-              if (customerData && customerData.email) {
-                guestEmail = customerData.email;
-                guestName = customerData.name || 'Amigo(a)';
-              }
+      // 2. Buscar dados do cliente no Asaas se o telefone não estava no Firestore
+      if (!guestPhone && payment?.customer && !payment.customer.includes('mock')) {
+        try {
+          const baseUrl = getAsaasBaseUrl();
+          const customerRes = await fetch(`${baseUrl}/customers/${payment.customer}`, {
+            headers: getAsaasHeaders()
+          });
+          if (customerRes.ok) {
+            const customerData = await customerRes.json();
+            if (customerData) {
+              guestPhone = customerData.mobilePhone || customerData.phone;
+              guestName = customerData.name || guestName;
             }
-          } catch (fetchErr) {
-            console.warn('[WEBHOOK ASAAS FETCH] Falha ao buscar dados do cliente no Asaas:', fetchErr.message);
           }
+        } catch (fetchErr) {
+          console.warn('[WEBHOOK ASAAS FETCH] Falha ao buscar dados do cliente no Asaas:', fetchErr.message);
         }
-        
-        // Disparo do E-mail pelo Resend (onboarding@resend.dev é usado em modo teste)
-        const { data, error } = await resend.emails.send({
-          from: 'Casamento Ana e Dener <onboarding@resend.dev>',
-          to: [guestEmail],
-          subject: 'Recebemos o seu presente! 💖',
-          html: getThankYouEmailTemplate(guestName, payment?.description || 'Nosso Presente', payment?.value),
-        });
+      }
 
-        if (error) {
-          console.error('[RESEND ERRO]:', error);
-        } else {
-          console.log(`✅ [RESEND SUCESSO]: E-mail enviado para ${guestEmail} (ID: ${data?.id})`);
+      // Se passado diretamente no payload (ex: simulação ou webhook mock)
+      if (!guestPhone && payment?.guestPhone) {
+        guestPhone = payment.guestPhone;
+      }
+      if (!guestName || guestName === 'Amigo(a)') {
+        if (payment?.guestName) guestName = payment.guestName;
+      }
+
+      // 3. Disparo da Mensagem de Agradecimento pelo WhatsApp via Baileys
+      if (guestPhone) {
+        try {
+          await sendGiftThankYouWhatsApp({
+            phone: guestPhone,
+            guestName,
+            giftTitle,
+            amount: payment?.value
+          });
+          console.log(`✅ [WHATSAPP SUCESSO]: Agradecimento enviado para ${guestPhone} (${guestName})!`);
+        } catch (waErr) {
+          console.error(`❌ [WHATSAPP ERRO] Falha ao enviar agradecimento para ${guestPhone}:`, waErr.message);
         }
-      } catch (err) {
-        console.error('[RESEND CATCH ERRO] Falha ao disparar e-mail:', err);
+      } else {
+        console.warn(`⚠️ [WHATSAPP AVISO] Pagamento ${payment?.id} confirmado, mas nenhum número de WhatsApp foi encontrado para o convidado.`);
       }
 
       break;
@@ -524,7 +554,13 @@ app.post('/api/asaas/webhook', async (req, res) => {
 
 // 5. Endpoint de Simulação de Webhook (Disparo de teste local)
 app.post('/api/asaas/webhook/simulate', (req, res) => {
-  const { event = 'PAYMENT_CONFIRMED', value = 350.00, giftTitle = 'Jantar Romântico à Beira-Mar' } = req.body;
+  const { 
+    event = 'PAYMENT_CONFIRMED', 
+    value = 350.00, 
+    giftTitle = 'Jantar Romântico à Beira-Mar',
+    guestName = 'Convidado de Teste',
+    guestPhone = '11999999999'
+  } = req.body;
 
   const mockWebhookPayload = {
     event,
@@ -536,14 +572,59 @@ app.post('/api/asaas/webhook/simulate', (req, res) => {
       billingType: 'PIX',
       status: 'CONFIRMED',
       description: `Presente de Casamento: ${giftTitle}`,
-      confirmedDate: new Date().toISOString()
+      confirmedDate: new Date().toISOString(),
+      guestPhone,
+      guestName
     }
   };
 
-  console.log(`[SIMULAÇÃO WEBHOOK] Disparando evento "${event}" localmente...`);
+  console.log(`[SIMULAÇÃO WEBHOOK] Disparando evento "${event}" localmente para ${guestPhone}...`);
   
   // Executa a lógica do webhook internamente
   app._router.handle({ method: 'POST', url: '/api/asaas/webhook', body: mockWebhookPayload, headers: { 'content-type': 'application/json' } }, res, () => {});
+});
+
+// ----------------------------------------------------
+// WHATSAPP MANAGEMENT ENDPOINTS
+// ----------------------------------------------------
+
+app.get('/api/whatsapp/status', (req, res) => {
+  const status = getWhatsAppStatus();
+  res.json({ success: true, ...status });
+});
+
+app.post('/api/whatsapp/connect', async (req, res) => {
+  try {
+    await initWhatsAppClient();
+    const status = getWhatsAppStatus();
+    res.json({ success: true, message: 'Inicializando WhatsApp...', ...status });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/whatsapp/logout', async (req, res) => {
+  try {
+    const result = await logoutWhatsApp();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/whatsapp/test', async (req, res) => {
+  try {
+    const { phone, message } = req.body;
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Número de telefone é obrigatório.' });
+    }
+    const text = message || '💍 *Mensagem de Teste do Casamento Ana Clara & Dener!* ✨\n\nConexão com o WhatsApp funcionando perfeitamente! 🤍';
+    const result = await sendWhatsAppTextMessage(phone, text);
+    res.json({ success: true, message: `Mensagem enviada com sucesso para ${phone}!`, messageId: result?.key?.id });
+  } catch (err) {
+    console.error('[WHATSAPP TEST ERRO]:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // ----------------------------------------------------

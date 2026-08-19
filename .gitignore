@@ -8,3 +8,5 @@ yarn-error.log
 .env*
 *.zip
 WhatsApp Chat*
+whatsapp_session/
+baileys_auth_info/

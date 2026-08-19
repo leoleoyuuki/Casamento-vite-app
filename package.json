@@ -12,11 +12,13 @@
     "test:webhook": "node scripts/test-webhook.js"
   },
   "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "firebase-admin": "^14.2.0",
     "lucide-react": "^0.395.0",
+    "pino": "^10.3.1",
     "qrcode": "^1.5.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

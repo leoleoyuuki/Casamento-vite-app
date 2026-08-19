@@ -10,16 +10,34 @@ export default function CheckoutModal({ gift, onClose }) {
 
   // Form Fields
   const [guestName, setGuestName] = useState('');
-  const [guestEmail, setGuestEmail] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
   const [guestCpf, setGuestCpf] = useState('');
+
+  // Máscara amigável de telefone / WhatsApp (11) 98765-4321
+  const formatPhone = (val) => {
+    let clean = val.replace(/\D/g, '').slice(0, 11);
+    if (clean.length > 10) {
+      return clean.replace(/^(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    } else if (clean.length > 6) {
+      return clean.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+    } else if (clean.length > 2) {
+      return clean.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+    }
+    return clean;
+  };
 
   if (!gift) return null;
 
   // Processar Checkout Hospedado Oficial do Asaas (Cartão 12x ou PIX na tela Asaas)
   const handleOpenAsaasHostedCheckout = async (e) => {
     e.preventDefault();
-    if (!guestName) {
+    if (!guestName.trim()) {
       setErrorMsg('Por favor, informe seu nome para os noivos saberem quem presenteou!');
+      return;
+    }
+
+    if (!guestPhone || guestPhone.replace(/\D/g, '').length < 10) {
+      setErrorMsg('Por favor, informe seu WhatsApp com DDD para que os noivos possam enviar o agradecimento!');
       return;
     }
 
@@ -34,7 +52,7 @@ export default function CheckoutModal({ gift, onClose }) {
           giftTitle: gift.title,
           amount: gift.price,
           guestName,
-          guestEmail,
+          guestPhone,
           guestCpf
         })
       });
@@ -62,8 +80,13 @@ export default function CheckoutModal({ gift, onClose }) {
   // Processar PIX Direto no Modal via API Asaas
   const handleGeneratePix = async (e) => {
     e.preventDefault();
-    if (!guestName) {
+    if (!guestName.trim()) {
       setErrorMsg('Por favor, informe seu nome para os noivos saberem quem presenteou!');
+      return;
+    }
+
+    if (!guestPhone || guestPhone.replace(/\D/g, '').length < 10) {
+      setErrorMsg('Por favor, informe seu WhatsApp com DDD para que os noivos possam enviar o agradecimento!');
       return;
     }
 
@@ -78,7 +101,7 @@ export default function CheckoutModal({ gift, onClose }) {
           giftTitle: gift.title,
           amount: gift.price,
           guestName,
-          guestEmail,
+          guestPhone,
           guestCpf
         })
       });
@@ -337,13 +360,14 @@ export default function CheckoutModal({ gift, onClose }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '24px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '6px' }}>
-                    E-mail (para o comprovante):
+                    WhatsApp com DDD: *
                   </label>
                   <input 
-                    type="email" 
-                    placeholder="seu@email.com" 
-                    value={guestEmail} 
-                    onChange={(e) => setGuestEmail(e.target.value)}
+                    type="tel" 
+                    required
+                    placeholder="(11) 98765-4321" 
+                    value={guestPhone} 
+                    onChange={(e) => setGuestPhone(formatPhone(e.target.value))}
                     style={{
                       width: '100%',
                       padding: '12px 14px',
@@ -353,6 +377,9 @@ export default function CheckoutModal({ gift, onClose }) {
                       fontSize: '14px'
                     }}
                   />
+                  <small style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                    Para os noivos enviarem o agradecimento 🤍
+                  </small>
                 </div>
 
                 <div>
@@ -373,6 +400,9 @@ export default function CheckoutModal({ gift, onClose }) {
                       fontSize: '14px'
                     }}
                   />
+                  <small style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                    Para emissão do comprovante Asaas
+                  </small>
                 </div>
               </div>
 

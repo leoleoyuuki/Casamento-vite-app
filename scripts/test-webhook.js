@@ -13,7 +13,9 @@ const sampleEvents = [
       billingType: 'PIX',
       status: 'RECEIVED',
       description: 'Presente de Casamento: Jantar Romântico à Beira-Mar',
-      paymentDate: new Date().toISOString().split('T')[0]
+      paymentDate: new Date().toISOString().split('T')[0],
+      guestName: 'Leonardo Yuuki',
+      guestPhone: '11999999999'
     }
   },
   {
@@ -27,7 +29,9 @@ const sampleEvents = [
       installmentCount: 8,
       status: 'CONFIRMED',
       description: 'Presente de Casamento: Geladeira Inox Smart French Door',
-      confirmedDate: new Date().toISOString()
+      confirmedDate: new Date().toISOString(),
+      guestName: 'Mariana Allemany',
+      guestPhone: '11988888888'
     }
   }
 ];
