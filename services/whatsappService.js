@@ -245,14 +245,44 @@ export async function ensureWhatsAppConnected(timeoutMs = 15000) {
 /**
  * Retorna o status atual da conexão e QR Code
  */
-export function getWhatsAppStatus() {
+// Retorna o status atual da conexão e QR Code
+export async function getWhatsAppStatus() {
+  const externalApiUrl = (process.env.WHATSAPP_API_URL || '').trim().replace(/\/$/, '');
+  if (externalApiUrl) {
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (process.env.WHATSAPP_API_KEY) headers['x-api-key'] = process.env.WHATSAPP_API_KEY;
+      
+      const res = await fetch(`${externalApiUrl}/api/status`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        return {
+          ...data,
+          isMicroservice: true,
+          storage: 'Microserviço Externo (24/7)'
+        };
+      }
+    } catch (e) {
+      return {
+        status: 'DISCONNECTED',
+        isConnected: false,
+        qrCode: null,
+        user: null,
+        error: `Erro ao conectar com microserviço (${externalApiUrl}): ${e.message}`,
+        isMicroservice: true,
+        storage: 'Microserviço Externo (Offline)'
+      };
+    }
+  }
+
   return {
     status: connectionStatus,
     isConnected: connectionStatus === 'CONNECTED',
     qrCode: qrCodeDataUrl,
     user: connectedUser,
     error: lastError,
-    storage: 'Local (Apenas Envios)'
+    storage: 'Local (Apenas Envios)',
+    isMicroservice: false
   };
 }
 
@@ -260,6 +290,29 @@ export function getWhatsAppStatus() {
  * Envia uma mensagem de texto simples para um número de telefone
  */
 export async function sendWhatsAppTextMessage(phone, text) {
+  const externalApiUrl = (process.env.WHATSAPP_API_URL || '').trim().replace(/\/$/, '');
+  
+  // Se houver microserviço configurado, envia via HTTP para ele
+  if (externalApiUrl) {
+    console.log(`🌐 [WHATSAPP MICROSERVIÇO] Encaminhando mensagem para ${phone} via ${externalApiUrl}...`);
+    const headers = { 'Content-Type': 'application/json' };
+    if (process.env.WHATSAPP_API_KEY) headers['x-api-key'] = process.env.WHATSAPP_API_KEY;
+
+    const res = await fetch(`${externalApiUrl}/api/send`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ phone, text })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || `Falha no microserviço de WhatsApp (${res.status})`);
+    }
+    console.log(`✅ [WHATSAPP MICROSERVIÇO SUCESSO] Entregue para ${phone}! ID: ${data?.messageId || 'OK'}`);
+    return data;
+  }
+
+  // Fallback: Baileys Local
   const activeSock = await ensureWhatsAppConnected();
 
   const rawJid = formatBrazilianPhoneToJid(phone);
@@ -291,6 +344,28 @@ export async function sendWhatsAppTextMessage(phone, text) {
  * Envia mensagem de agradecimento pelo presente
  */
 export async function sendGiftThankYouWhatsApp({ phone, guestName, giftTitle }) {
+  const externalApiUrl = (process.env.WHATSAPP_API_URL || '').trim().replace(/\/$/, '');
+  
+  if (externalApiUrl) {
+    console.log(`🌐 [WHATSAPP MICROSERVIÇO] Enviando agradecimento para ${phone} via microserviço...`);
+    const headers = { 'Content-Type': 'application/json' };
+    if (process.env.WHATSAPP_API_KEY) headers['x-api-key'] = process.env.WHATSAPP_API_KEY;
+
+    const res = await fetch(`${externalApiUrl}/api/send-gift-thankyou`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ phone, guestName, giftTitle })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      // Tenta fallback com /api/send e texto gerado
+      const messageText = getThankYouWhatsAppMessage(guestName, giftTitle);
+      return await sendWhatsAppTextMessage(phone, messageText);
+    }
+    return data;
+  }
+
   const messageText = getThankYouWhatsAppMessage(guestName, giftTitle);
   return await sendWhatsAppTextMessage(phone, messageText);
 }
@@ -314,6 +389,18 @@ async function clearStoredSession() {
  * Desconecta e limpa a sessão do WhatsApp
  */
 export async function logoutWhatsApp() {
+  const externalApiUrl = (process.env.WHATSAPP_API_URL || '').trim().replace(/\/$/, '');
+  if (externalApiUrl) {
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (process.env.WHATSAPP_API_KEY) headers['x-api-key'] = process.env.WHATSAPP_API_KEY;
+      const res = await fetch(`${externalApiUrl}/api/logout`, { method: 'POST', headers });
+      return await res.json();
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
+  }
+
   try {
     if (sock) {
       await sock.logout().catch(() => {});
@@ -333,3 +420,4 @@ export async function logoutWhatsApp() {
 
   return { success: true, message: 'WhatsApp desconectado com sucesso.' };
 }
+

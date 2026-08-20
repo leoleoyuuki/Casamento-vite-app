@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, LogOut, MessageSquare, Users, Check, X, Shield, EyeOff, Eye, Plus, Upload, Download, FileText, Copy, Sparkles, Smartphone, RefreshCw, Send, Radio } from 'lucide-react';
+import { Lock, LogOut, MessageSquare, Users, Check, X, Shield, EyeOff, Eye, Plus, Upload, Download, FileText, Copy, Sparkles, Smartphone, RefreshCw, Send, Radio, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -20,6 +20,8 @@ export default function Admin() {
   const [testMsg, setTestMsg] = useState('');
   const [testSending, setTestSending] = useState(false);
   const [testResponse, setTestResponse] = useState(null);
+  const [resendingGiftId, setResendingGiftId] = useState(null);
+  const [actionFeedback, setActionFeedback] = useState(null);
 
   // Formulário Individual de Convidados
   const [newGuestCode, setNewGuestCode] = useState('');
@@ -175,6 +177,28 @@ export default function Admin() {
     } catch (err) {
       setTestSending(false);
       setTestResponse({ success: false, message: 'Erro de comunicação ao enviar mensagem.' });
+    }
+  };
+
+  const handleResendWhatsApp = async (giftId) => {
+    setResendingGiftId(giftId);
+    setActionFeedback(null);
+    try {
+      const res = await fetch(`/api/admin/gifts/${giftId}/resend-whatsapp`, {
+        method: 'POST',
+        headers: { 'Authorization': password }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionFeedback({ type: 'success', message: data.message || 'WhatsApp reenviado com sucesso!' });
+        setGifts(prev => prev.map(g => g.id === giftId ? { ...g, whatsappSent: true, whatsappError: null } : g));
+      } else {
+        setActionFeedback({ type: 'error', message: data.message || 'Erro ao reenviar WhatsApp.' });
+      }
+    } catch (err) {
+      setActionFeedback({ type: 'error', message: 'Erro de comunicação com o servidor.' });
+    } finally {
+      setResendingGiftId(null);
     }
   };
 
@@ -645,6 +669,24 @@ export default function Admin() {
               * Vendas parceladas via Asaas têm repasses em conta liberados gradualmente a cada parcela quitada.
             </p>
 
+            {actionFeedback && (
+              <div style={{
+                marginBottom: '20px',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: actionFeedback.type === 'success' ? '#EAF8EE' : '#FDE8E8',
+                color: actionFeedback.type === 'success' ? '#1E7E34' : '#9B1C1C',
+                border: `1px solid ${actionFeedback.type === 'success' ? '#A3E6B4' : '#F8B4B4'}`
+              }}>
+                {actionFeedback.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                {actionFeedback.message}
+              </div>
+            )}
+
             <div style={styles.listContainer}>
               {gifts.length === 0 ? (
                 <p style={styles.emptyState}>Nenhum presente registrado ainda.</p>
@@ -655,22 +697,65 @@ export default function Admin() {
                       <span style={{fontWeight: 'bold', color: 'var(--color-marrom)', fontSize: '16px'}}>
                         {gift.giftTitle}
                       </span>
-                      {gift.status === 'PAID' ? (
-                        <span style={styles.publicBadge}><Check size={14} /> Recebido</span>
-                      ) : (
-                        <span style={{...styles.privateBadge, backgroundColor: '#fdf3e7', color: '#d35400'}}><Lock size={14} /> Aguardando Pagamento</span>
-                      )}
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {gift.status === 'PAID' ? (
+                          <span style={styles.publicBadge}><Check size={14} /> Recebido</span>
+                        ) : (
+                          <span style={{...styles.privateBadge, backgroundColor: '#fdf3e7', color: '#d35400'}}><Lock size={14} /> Aguardando Pagamento</span>
+                        )}
+                        {gift.status === 'PAID' && (
+                          gift.whatsappSent ? (
+                            <span style={{ ...styles.publicBadge, backgroundColor: '#EAF8EE', color: '#1E7E34' }}>
+                              <Check size={12} /> WhatsApp Enviado
+                            </span>
+                          ) : (
+                            <span 
+                              style={{ ...styles.privateBadge, backgroundColor: '#FDE8E8', color: '#9B1C1C', cursor: 'help' }} 
+                              title={gift.whatsappError || 'WhatsApp ainda não foi entregue'}
+                            >
+                              <AlertCircle size={12} /> WhatsApp Pendente
+                            </span>
+                          )
+                        )}
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                       <p style={{ margin: '5px 0', fontSize: '14px', color: '#555' }}>
                         De: <strong>{gift.guestName}</strong> <br/>
                         <small style={{ color: 'var(--color-verde-oliva)', fontWeight: 600 }}>
                           {gift.guestPhone ? `📱 ${gift.guestPhone}` : (gift.guestEmail ? `✉️ ${gift.guestEmail}` : 'Sem telefone')}
                         </small>
                       </p>
-                      <h4 style={{ margin: 0, fontSize: '20px', color: 'var(--color-verde-oliva)' }}>
-                        R$ {Number(gift.amount).toFixed(2).replace('.', ',')}
-                      </h4>
+                      <div style={{ textAlign: 'right' }}>
+                        <h4 style={{ margin: 0, fontSize: '20px', color: 'var(--color-verde-oliva)' }}>
+                          R$ {Number(gift.amount).toFixed(2).replace('.', ',')}
+                        </h4>
+                        {gift.status === 'PAID' && (
+                          <button
+                            onClick={() => handleResendWhatsApp(gift.id)}
+                            disabled={resendingGiftId === gift.id}
+                            style={{
+                              marginTop: '8px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '5px 10px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              borderRadius: '6px',
+                              border: '1px solid #c3e6cb',
+                              backgroundColor: '#f4fbf6',
+                              color: '#155724',
+                              cursor: resendingGiftId === gift.id ? 'not-allowed' : 'pointer',
+                              opacity: resendingGiftId === gift.id ? 0.6 : 1
+                            }}
+                            title="Enviar ou reenviar mensagem de agradecimento via WhatsApp"
+                          >
+                            <Send size={12} />
+                            {resendingGiftId === gift.id ? 'Enviando...' : (gift.whatsappSent ? 'Reenviar WhatsApp' : 'Enviar WhatsApp')}
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div style={{ marginTop: '10px', fontSize: '12px', color: '#999', display: 'flex', justifyContent: 'space-between' }}>
                       <span>Registrado em: {gift.createdAtFormatted || (gift.createdAt ? new Date(gift.createdAt._seconds ? gift.createdAt._seconds * 1000 : gift.createdAt).toLocaleString('pt-BR') : 'Data Indisponível')}</span>

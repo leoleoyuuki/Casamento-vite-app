@@ -123,8 +123,9 @@ app.post('/api/asaas/pix', async (req, res) => {
     
     // Se houver chave API válida no Asaas
     if (process.env.ASAAS_API_KEY) {
+      const baseUrl = getAsaasBaseUrl();
       // 1. Criar Cliente
-      const customerRes = await fetch(`${ASAAS_BASE_URL}/customers`, {
+      const customerRes = await fetch(`${baseUrl}/customers`, {
         method: 'POST',
         headers: getAsaasHeaders(),
         body: JSON.stringify({
@@ -137,7 +138,7 @@ app.post('/api/asaas/pix', async (req, res) => {
       const customer = await customerRes.json();
 
       // 2. Criar Cobrança PIX
-      const paymentRes = await fetch(`${ASAAS_BASE_URL}/payments`, {
+      const paymentRes = await fetch(`${baseUrl}/payments`, {
         method: 'POST',
         headers: getAsaasHeaders(),
         body: JSON.stringify({
@@ -150,8 +151,28 @@ app.post('/api/asaas/pix', async (req, res) => {
       });
       const payment = await paymentRes.json();
 
+      // Salvar presente no Firestore com status PENDING
+      try {
+        if (db && payment?.id) {
+          await db.collection('gifts').doc(payment.id).set({
+            paymentId: payment.id,
+            giftTitle: giftTitle,
+            amount: parseFloat(amount),
+            guestName: guestName || 'Amigo(a)',
+            guestPhone: guestPhone || '',
+            guestEmail: guestEmail || '',
+            guestCpf: guestCpf || '',
+            status: 'PENDING',
+            whatsappSent: false,
+            createdAt: FieldValue.serverTimestamp()
+          });
+        }
+      } catch (fsErr) {
+        console.error('[FIRESTORE ERRO] Falha ao registrar presente PIX pendente:', fsErr);
+      }
+
       // 3. Obter QR Code PIX
-      const qrRes = await fetch(`${ASAAS_BASE_URL}/payments/${payment.id}/pixQrCode`, {
+      const qrRes = await fetch(`${baseUrl}/payments/${payment.id}/pixQrCode`, {
         headers: getAsaasHeaders()
       });
       const qrData = await qrRes.json();
@@ -369,7 +390,8 @@ app.post('/api/asaas/credit-card', async (req, res) => {
     }
 
     // Criar/Obter Cliente no Asaas
-    const customerRes = await fetch(`${ASAAS_BASE_URL}/customers`, {
+    const baseUrl = getAsaasBaseUrl();
+    const customerRes = await fetch(`${baseUrl}/customers`, {
       method: 'POST',
       headers: getAsaasHeaders(),
       body: JSON.stringify({
@@ -415,7 +437,7 @@ app.post('/api/asaas/credit-card', async (req, res) => {
       paymentPayload.installmentCount = parseInt(installments);
     }
 
-    const paymentRes = await fetch(`${ASAAS_BASE_URL}/payments`, {
+    const paymentRes = await fetch(`${baseUrl}/payments`, {
       method: 'POST',
       headers: getAsaasHeaders(),
       body: JSON.stringify(paymentPayload)
@@ -471,12 +493,13 @@ app.post('/api/asaas/webhook', async (req, res) => {
       let guestPhone = null;
       let guestName = 'Amigo(a)';
       let giftTitle = payment?.description || 'Presente de Casamento';
+      let docRef = null;
 
-      // 1. Atualizar status no Firestore para PAID e buscar dados salvos
+      // 1. Atualizar status no Firestore para PAID imediatamente (Blindagem)
       try {
         if (db && payment?.id) {
-          const giftDocRef = db.collection('gifts').doc(payment.id);
-          const docSnap = await giftDocRef.get();
+          docRef = db.collection('gifts').doc(payment.id);
+          const docSnap = await docRef.get();
           
           if (docSnap.exists) {
             const giftData = docSnap.data();
@@ -485,9 +508,15 @@ app.post('/api/asaas/webhook', async (req, res) => {
             giftTitle = giftData.giftTitle || giftTitle;
           }
 
-          await giftDocRef.set({
+          await docRef.set({
+            paymentId: payment.id,
+            giftTitle: giftTitle,
+            amount: payment?.value ? parseFloat(payment.value) : undefined,
+            guestName: guestName,
+            guestPhone: guestPhone || '',
             status: 'PAID',
-            paidAt: FieldValue.serverTimestamp()
+            paidAt: FieldValue.serverTimestamp(),
+            whatsappSent: false
           }, { merge: true });
           
           console.log(`[FIRESTORE] Presente atualizado para PAID: ${payment.id}`);
@@ -508,6 +537,10 @@ app.post('/api/asaas/webhook', async (req, res) => {
             if (customerData) {
               guestPhone = customerData.mobilePhone || customerData.phone;
               guestName = customerData.name || guestName;
+
+              if (docRef && guestPhone) {
+                await docRef.set({ guestPhone, guestName }, { merge: true });
+              }
             }
           }
         } catch (fetchErr) {
@@ -523,7 +556,7 @@ app.post('/api/asaas/webhook', async (req, res) => {
         if (payment?.guestName) guestName = payment.guestName;
       }
 
-      // 3. Disparo da Mensagem de Agradecimento pelo WhatsApp via Baileys
+      // 3. Disparo da Mensagem de Agradecimento pelo WhatsApp (Isolado em try/catch)
       if (guestPhone) {
         try {
           await sendGiftThankYouWhatsApp({
@@ -533,11 +566,31 @@ app.post('/api/asaas/webhook', async (req, res) => {
             amount: payment?.value
           });
           console.log(`✅ [WHATSAPP SUCESSO]: Agradecimento enviado para ${guestPhone} (${guestName})!`);
+          
+          if (docRef) {
+            await docRef.set({
+              whatsappSent: true,
+              whatsappSentAt: FieldValue.serverTimestamp(),
+              whatsappError: null
+            }, { merge: true });
+          }
         } catch (waErr) {
           console.error(`❌ [WHATSAPP ERRO] Falha ao enviar agradecimento para ${guestPhone}:`, waErr.message);
+          if (docRef) {
+            await docRef.set({
+              whatsappSent: false,
+              whatsappError: waErr.message
+            }, { merge: true });
+          }
         }
       } else {
         console.warn(`⚠️ [WHATSAPP AVISO] Pagamento ${payment?.id} confirmado, mas nenhum número de WhatsApp foi encontrado para o convidado.`);
+        if (docRef) {
+          await docRef.set({
+            whatsappSent: false,
+            whatsappError: 'Nenhum número de WhatsApp encontrado'
+          }, { merge: true });
+        }
       }
 
       break;
@@ -588,15 +641,15 @@ app.post('/api/asaas/webhook/simulate', (req, res) => {
 // WHATSAPP MANAGEMENT ENDPOINTS
 // ----------------------------------------------------
 
-app.get('/api/whatsapp/status', (req, res) => {
-  const status = getWhatsAppStatus();
+app.get('/api/whatsapp/status', async (req, res) => {
+  const status = await getWhatsAppStatus();
   res.json({ success: true, ...status });
 });
 
 app.post('/api/whatsapp/connect', async (req, res) => {
   try {
     await initWhatsAppClient();
-    const status = getWhatsAppStatus();
+    const status = await getWhatsAppStatus();
     res.json({ success: true, message: 'Inicializando WhatsApp...', ...status });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -717,6 +770,62 @@ app.get('/api/admin/gifts', authenticateAdmin, async (req, res) => {
   } catch(err) {
     console.error('[ADMIN GIFTS ERRO]:', err);
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Resend Gift WhatsApp Message
+app.post('/api/admin/gifts/:id/resend-whatsapp', authenticateAdmin, async (req, res) => {
+  if (!db) return res.status(500).json({ success: false, message: 'Banco de dados offline.' });
+  const giftId = req.params.id;
+
+  try {
+    const docRef = db.collection('gifts').doc(giftId);
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      return res.status(404).json({ success: false, message: 'Presente não encontrado.' });
+    }
+
+    const gift = docSnap.data();
+    const phone = gift.guestPhone || gift.phone;
+    const guestName = gift.guestName || 'Amigo(a)';
+    const giftTitle = gift.giftTitle || 'Presente de Casamento';
+
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Este presente não possui telefone/WhatsApp cadastrado.' });
+    }
+
+    console.log(`[ADMIN RESEND WHATSAPP] Reenviando agradecimento para ${phone} (${guestName})...`);
+    await sendGiftThankYouWhatsApp({
+      phone,
+      guestName,
+      giftTitle,
+      amount: gift.amount
+    });
+
+    await docRef.set({
+      whatsappSent: true,
+      whatsappSentAt: FieldValue.serverTimestamp(),
+      whatsappError: null
+    }, { merge: true });
+
+    res.json({
+      success: true,
+      message: `Mensagem de agradecimento reenviada com sucesso para ${phone}!`
+    });
+  } catch (err) {
+    console.error('[ADMIN RESEND WHATSAPP ERRO]:', err);
+    try {
+      await db.collection('gifts').doc(giftId).set({
+        whatsappSent: false,
+        whatsappError: err.message
+      }, { merge: true });
+    } catch (e) {}
+
+    res.status(500).json({
+      success: false,
+      message: `Erro ao enviar WhatsApp: ${err.message}`
+    });
   }
 });
 
