@@ -12,7 +12,7 @@ export default function Footer() {
       <div className="container" style={{ textAlign: 'center' }}>
         
         {/* Monograma */}
-        <div style={{ fontFamily: 'var(--font-script)', fontSize: '56px', color: 'var(--color-rosa-claro)', lineHeight: 1, marginBottom: '8px' }}>
+        <div className="font-script" style={{ fontFamily: 'var(--font-script)', fontSize: '56px', color: 'var(--color-rosa-claro)', lineHeight: 1, marginBottom: '8px' }}>
           Ana & Dener
         </div>
 

@@ -43,7 +43,7 @@ export default function Header() {
         
         {/* Monograma / Logo */}
         <a href="#inicio" style={{ textDecoration: 'none', color: scrolled ? 'var(--color-marrom)' : '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="font-script" style={{ fontSize: '32px', color: scrolled ? 'var(--color-marrom)' : '#FAF6F0', lineHeight: 1 }}>
+          <span className="font-script" style={{ fontFamily: 'var(--font-script)', fontSize: '34px', color: scrolled ? 'var(--color-marrom)' : '#FAF6F0', lineHeight: 1 }}>
             A & D
           </span>
         </a>

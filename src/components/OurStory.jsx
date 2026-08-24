@@ -305,8 +305,8 @@ export default function OurStory() {
 
             <p style={{
               fontFamily: 'var(--font-serif)',
-              fontSize: '19px',
-              lineHeight: 1.6,
+              fontSize: '18px',
+              lineHeight: 1.65,
               color: 'var(--text-dark)',
               marginBottom: '16px'
             }}>
@@ -314,18 +314,20 @@ export default function OurStory() {
             </p>
 
             <p style={{
-              fontSize: '14px',
-              lineHeight: 1.7,
-              color: 'var(--text-muted)',
+              fontFamily: 'var(--font-serif)',
+              fontSize: '18px',
+              lineHeight: 1.65,
+              color: 'var(--text-dark)',
               marginBottom: '16px'
             }}>
               Esse site foi criado para reunir todas as informações do nosso grande dia, mas acima de tudo, para compartilhar um pouquinho da nossa história.
             </p>
 
             <p style={{
-              fontSize: '14px',
-              lineHeight: 1.7,
-              color: 'var(--text-muted)',
+              fontFamily: 'var(--font-serif)',
+              fontSize: '18px',
+              lineHeight: 1.65,
+              color: 'var(--text-dark)',
               marginBottom: '20px'
             }}>
               Esperamos que este espaço ajude vocês a encontrar tudo o que precisam para viver esse dia conosco. Mas, se ficarem com qualquer dúvida, não deixem de falar conosco.
@@ -338,7 +340,7 @@ export default function OurStory() {
               borderRadius: '4px',
               marginBottom: '24px'
             }}>
-              <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-marrom)' }}>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-marrom)' }}>
                 <strong>Ah, não se esqueçam de confirmar sua presença!</strong> Essa parte é muito importante para nós!
               </p>
             </div>
@@ -347,7 +349,7 @@ export default function OurStory() {
               <p style={{ fontFamily: 'var(--font-serif)', fontSize: '16px', color: 'var(--text-muted)' }}>
                 Está cada dia mais perto.
               </p>
-              <p className="font-script" style={{ fontSize: '34px', color: 'var(--color-marrom)', marginTop: '2px' }}>
+              <p className="font-script" style={{ fontFamily: 'var(--font-script)', fontSize: '38px', color: 'var(--color-marrom)', marginTop: '4px' }}>
                 Com carinho, Ana Clara & Dener
               </p>
             </div>

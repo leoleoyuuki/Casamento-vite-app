@@ -46,9 +46,9 @@ export default function Hero() {
 
 
         {/* Nomes dos Noivos em Sloop Script / Script Pro */}
-        <h1 style={{
+        <h1 className="font-script" style={{
           fontFamily: 'var(--font-script)',
-          fontSize: 'clamp(48px, 8vw, 76px)',
+          fontSize: 'clamp(52px, 8.5vw, 82px)',
           fontWeight: 400,
           color: '#FFFFFF',
           lineHeight: 1.1,

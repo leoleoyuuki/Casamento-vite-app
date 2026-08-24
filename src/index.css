@@ -1,3 +1,48 @@
+/* ==========================================================================
+   FONTES PERSONALIZADAS: Sloop Script Pro (Oficial)
+   ========================================================================== */
+@font-face {
+  font-family: 'Sloop Script Pro';
+  src: url('/assets/fonts/sloop-script.ttf') format('truetype'),
+       url('/assets/fonts/SloopScriptPro.ttf') format('truetype'),
+       url('/assets/fonts/SloopScript.ttf') format('truetype'),
+       local('Sloop Script Pro'),
+       local('SloopScriptPro'),
+       local('Sloop Script'),
+       local('SloopScript'),
+       local('Sloop');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Sloop Script';
+  src: url('/assets/fonts/sloop-script.ttf') format('truetype'),
+       url('/assets/fonts/SloopScriptPro.ttf') format('truetype'),
+       url('/assets/fonts/SloopScript.ttf') format('truetype'),
+       local('Sloop Script Pro'),
+       local('SloopScriptPro'),
+       local('Sloop Script'),
+       local('SloopScript'),
+       local('Sloop');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Sloop';
+  src: url('/assets/fonts/sloop-script.ttf') format('truetype'),
+       url('/assets/fonts/SloopScriptPro.ttf') format('truetype'),
+       url('/assets/fonts/SloopScript.ttf') format('truetype'),
+       local('Sloop Script Pro'),
+       local('Sloop Script');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* Paleta de Cores Oficial do Casamento - Vercel / Radix / Linear Style Design System */
   --color-marrom: #745D57;
@@ -29,7 +74,7 @@
 
   /* Tipografia */
   --font-serif: 'Cormorant Garamond', 'Cormorant', Georgia, serif;
-  --font-script: 'Sloop Script Pro', 'Sloop Script', 'Pinyon Script', cursive;
+  --font-script: 'Sloop Script Pro', 'Sloop Script', 'SloopScriptPro', 'Sloop', 'Pinyon Script', cursive;
   --font-sans: 'Cormorant Garamond', 'Cormorant', Georgia, serif;
   --font-heading: 'Cormorant Garamond', 'Cormorant', Georgia, serif;
 

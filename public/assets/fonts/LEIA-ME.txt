@@ -1,0 +1,13 @@
+Cole aqui o arquivo da fonte Sloop Script Pro (.ttf, .otf, .woff ou .woff2).
+
+Nomes de arquivo reconhecidos automaticamente pelo index.css:
+- SloopScriptPro.woff2
+- SloopScriptPro.woff
+- SloopScriptPro.ttf
+- SloopScriptPro.otf
+- SloopScript.ttf
+- SloopScript.otf
+- sloop.ttf
+- sloop.otf
+
+Assim que o arquivo for colado nesta pasta, o site carregará a fonte 100% autêntica e idêntica para todos os visitantes sem depender de instalação local!
