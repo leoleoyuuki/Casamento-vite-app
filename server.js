@@ -829,20 +829,118 @@ app.post('/api/admin/gifts/:id/resend-whatsapp', authenticateAdmin, async (req, 
   }
 });
 
-// Admin Add Guest Code
+// Helper: Gerador de Código Alfanumérico Único e Aleatório (sem ordem ou sequência)
+const ALPHANUMERIC_CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+function generateAlphanumericCode(length = 6) {
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += ALPHANUMERIC_CHARS.charAt(Math.floor(Math.random() * ALPHANUMERIC_CHARS.length));
+  }
+  return result;
+}
+
+// Admin Add Guest Code (Alfanumérico)
 app.post('/api/admin/guests', authenticateAdmin, async (req, res) => {
   if (!db) return res.status(500).json({ success: false, message: 'DB offline' });
-  const { code, name } = req.body;
+  let { code, name } = req.body;
+  name = (name || '').trim();
+  if (!name) return res.status(400).json({ success: false, message: 'Nome do convidado é obrigatório.' });
+
   try {
+    if (!code || !code.trim()) {
+      // Gera código alfanumérico aleatório garantindo unicidade
+      let candidate = generateAlphanumericCode(6);
+      let doc = await db.collection('guests').doc(candidate).get();
+      while (doc.exists) {
+        candidate = generateAlphanumericCode(6);
+        doc = await db.collection('guests').doc(candidate).get();
+      }
+      code = candidate;
+    } else {
+      code = code.trim().toUpperCase();
+    }
+
     await db.collection('guests').doc(code).set({ code, name, confirmed: false });
-    res.json({ success: true });
+    res.json({ success: true, guest: { code, name, confirmed: false } });
   } catch(err) {
     console.error(err);
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, message: 'Erro ao salvar convidado: ' + err.message });
   }
 });
 
-// Admin Bulk Add Guests (Gerador de Códigos em Massa)
+// Admin Update Guest (Editar Nome / Código)
+app.put('/api/admin/guests/:code', authenticateAdmin, async (req, res) => {
+  if (!db) return res.status(500).json({ success: false, message: 'DB offline' });
+  const oldCode = req.params.code.trim().toUpperCase();
+  const { name, newCode } = req.body;
+
+  if (!name || !name.trim()) {
+    return res.status(400).json({ success: false, message: 'Nome é obrigatório.' });
+  }
+
+  try {
+    const oldDocRef = db.collection('guests').doc(oldCode);
+    const oldDoc = await oldDocRef.get();
+
+    if (!oldDoc.exists) {
+      return res.status(404).json({ success: false, message: 'Convidado não encontrado.' });
+    }
+
+    const currentData = oldDoc.data();
+    const finalName = name.trim();
+    const targetCode = (newCode && newCode.trim()) ? newCode.trim().toUpperCase() : oldCode;
+
+    if (targetCode !== oldCode) {
+      // Se o código mudou, verificar se o novo código já existe
+      const targetDoc = await db.collection('guests').doc(targetCode).get();
+      if (targetDoc.exists) {
+        return res.status(400).json({ success: false, message: `O código "${targetCode}" já está em uso por outro convidado.` });
+      }
+
+      const updatedData = {
+        ...currentData,
+        code: targetCode,
+        name: finalName,
+        ...(currentData.guestName ? { guestName: finalName } : {})
+      };
+
+      const batch = db.batch();
+      batch.set(db.collection('guests').doc(targetCode), updatedData);
+      batch.delete(oldDocRef);
+      await batch.commit();
+
+      return res.json({ success: true, guest: updatedData });
+    } else {
+      // Atualizar apenas o nome no mesmo documento
+      const updatedFields = {
+        name: finalName,
+        ...(currentData.guestName ? { guestName: finalName } : {})
+      };
+      await oldDocRef.update(updatedFields);
+
+      return res.json({ success: true, guest: { ...currentData, ...updatedFields } });
+    }
+  } catch (err) {
+    console.error('[ADMIN UPDATE GUEST ERRO]:', err);
+    res.status(500).json({ success: false, message: 'Erro ao atualizar convidado: ' + err.message });
+  }
+});
+
+// Admin Delete Guest
+app.delete('/api/admin/guests/:code', authenticateAdmin, async (req, res) => {
+  if (!db) return res.status(500).json({ success: false, message: 'DB offline' });
+  const code = req.params.code.trim().toUpperCase();
+
+  try {
+    await db.collection('guests').doc(code).delete();
+    res.json({ success: true, message: 'Convidado removido com sucesso.' });
+  } catch (err) {
+    console.error('[ADMIN DELETE GUEST ERRO]:', err);
+    res.status(500).json({ success: false, message: 'Erro ao excluir convidado: ' + err.message });
+  }
+});
+
+// Admin Bulk Add Guests (Gerador de Códigos Alfanuméricos em Massa)
 app.post('/api/admin/guests/bulk', authenticateAdmin, async (req, res) => {
   if (!db) return res.status(500).json({ success: false, message: 'Banco de dados offline.' });
   const { guests } = req.body; // Array de { name, code? } ou string de nomes
@@ -858,7 +956,6 @@ app.post('/api/admin/guests/bulk', authenticateAdmin, async (req, res) => {
     const existingSnapshot = await db.collection('guests').get();
     const existingCodes = new Set(existingSnapshot.docs.map(doc => doc.id.toUpperCase()));
 
-    let indexCount = 101;
     for (const g of guests) {
       const name = (typeof g === 'string' ? g : (g.name || '')).trim();
       if (!name) continue;
@@ -866,22 +963,12 @@ app.post('/api/admin/guests/bulk', authenticateAdmin, async (req, res) => {
       let code = (typeof g === 'object' && g.code ? g.code : '').trim().toUpperCase();
 
       if (!code) {
-        // Gera código limpo baseado no primeiro nome (Ex: MARIANA-101, CARLOS-102)
-        const cleanName = name
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^a-zA-Z0-9\s]/g, '')
-          .trim()
-          .toUpperCase()
-          .split(/\s+/)[0] || 'CONVITE';
-
-        let candidateCode = `${cleanName}-${indexCount}`;
+        // Gera código alfanumérico aleatório único (Ex: K9N4P2, 7K9X2P)
+        let candidateCode = generateAlphanumericCode(6);
         while (existingCodes.has(candidateCode)) {
-          indexCount++;
-          candidateCode = `${cleanName}-${indexCount}`;
+          candidateCode = generateAlphanumericCode(6);
         }
         code = candidateCode;
-        indexCount++;
       }
 
       existingCodes.add(code);
@@ -891,7 +978,7 @@ app.post('/api/admin/guests/bulk', authenticateAdmin, async (req, res) => {
     }
 
     await batch.commit();
-    console.log(`✅ [ADMIN BULK GUESTS] ${createdGuests.length} convites gerados e salvos com sucesso.`);
+    console.log(`✅ [ADMIN BULK GUESTS] ${createdGuests.length} convites alfanuméricos gerados e salvos com sucesso.`);
 
     res.json({
       success: true,
@@ -901,6 +988,56 @@ app.post('/api/admin/guests/bulk', authenticateAdmin, async (req, res) => {
   } catch (err) {
     console.error('[ADMIN BULK GUESTS ERRO]:', err);
     res.status(500).json({ success: false, message: 'Erro ao cadastrar convites em massa: ' + err.message });
+  }
+});
+
+// Admin Migration: Converter todos os convites legados para Alfanumérico
+app.post('/api/admin/guests/migrate-alphanumeric', authenticateAdmin, async (req, res) => {
+  if (!db) return res.status(500).json({ success: false, message: 'Banco de dados offline.' });
+
+  try {
+    const snapshot = await db.collection('guests').get();
+    const usedCodes = new Set();
+    const migrations = [];
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      let newCode = generateAlphanumericCode(6);
+      while (usedCodes.has(newCode)) {
+        newCode = generateAlphanumericCode(6);
+      }
+      usedCodes.add(newCode);
+      migrations.push({
+        oldId: doc.id,
+        oldData: data,
+        newCode: newCode
+      });
+    });
+
+    // Processa em lotes de 400
+    for (let i = 0; i < migrations.length; i += 400) {
+      const chunk = migrations.slice(i, i + 400);
+      const batch = db.batch();
+      for (const item of chunk) {
+        const oldDocRef = db.collection('guests').doc(item.oldId);
+        const newDocRef = db.collection('guests').doc(item.newCode);
+        const newData = {
+          ...item.oldData,
+          code: item.newCode
+        };
+        batch.set(newDocRef, newData);
+        if (item.oldId !== item.newCode) {
+          batch.delete(oldDocRef);
+        }
+      }
+      await batch.commit();
+    }
+
+    console.log(`✅ [MIGRATION] ${migrations.length} convites convertidos para alfanumérico.`);
+    res.json({ success: true, count: migrations.length, message: `${migrations.length} convites atualizados para códigos alfanuméricos com sucesso!` });
+  } catch (err) {
+    console.error('[MIGRATION ERRO]:', err);
+    res.status(500).json({ success: false, message: 'Erro ao migrar convites: ' + err.message });
   }
 });
 

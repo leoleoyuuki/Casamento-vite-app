@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, LogOut, MessageSquare, Users, Check, X, Shield, EyeOff, Eye, Plus, Upload, Download, FileText, Copy, Sparkles, Smartphone, RefreshCw, Send, Radio, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Lock, LogOut, MessageSquare, Users, Check, X, Shield, EyeOff, Eye, Plus, Upload, Download, FileText, Copy, Sparkles, Smartphone, RefreshCw, Send, Radio, AlertCircle, CheckCircle2, Edit2, Trash2, Search, ExternalLink, Share2, CheckCheck, Loader2 } from 'lucide-react';
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -26,6 +26,13 @@ export default function Admin() {
   // Formulário Individual de Convidados
   const [newGuestCode, setNewGuestCode] = useState('');
   const [newGuestName, setNewGuestName] = useState('');
+
+  // Gerenciamento de Edição e Busca de Convidados
+  const [editingGuest, setEditingGuest] = useState(null); // { oldCode, name, newCode }
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(null);
+  const [searchGuest, setSearchGuest] = useState('');
+  const [migrateLoading, setMigrateLoading] = useState(false);
 
   // Gerador de Convites em Massa (TXT/CSV)
   const [bulkText, setBulkText] = useState('');
@@ -202,21 +209,162 @@ export default function Admin() {
     }
   };
 
+  const handleCopyLink = (code) => {
+    const url = `${window.location.origin}/?convite=${code}`;
+    navigator.clipboard.writeText(url);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 3000);
+  };
+
+  const handleCopyWhatsAppText = (guest) => {
+    const guestName = guest.name || guest.guestName || 'Convidado Especial';
+    const url = `${window.location.origin}/?convite=${guest.code}`;
+    const text = `Olá ${guestName}! ✨\n\nVocê é muito especial para nós e ficaremos imensamente felizes com a sua presença no nosso casamento! 💍🤍\n\nAcesse o link abaixo para conferir as informações e confirmar sua presença:\n${url}\n\nCom carinho,\nAna Clara & Dener`;
+    navigator.clipboard.writeText(text);
+    setCopiedCode(guest.code + '-wa');
+    setTimeout(() => setCopiedCode(null), 3000);
+  };
+
+  const handleOpenEdit = (guest) => {
+    setEditingGuest({
+      oldCode: guest.code,
+      name: guest.name || guest.guestName || '',
+      newCode: guest.code
+    });
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingGuest || !editingGuest.name.trim()) {
+      alert('O nome do convidado não pode ficar em branco.');
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/admin/guests/${editingGuest.oldCode}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': password
+        },
+        body: JSON.stringify({
+          name: editingGuest.name.trim(),
+          newCode: editingGuest.newCode ? editingGuest.newCode.trim().toUpperCase() : editingGuest.oldCode
+        })
+      });
+      const data = await res.json();
+      setSavingEdit(false);
+
+      if (data.success) {
+        setEditingGuest(null);
+        loadAdminData(password);
+        setActionFeedback({ type: 'success', message: 'Convidado atualizado com sucesso!' });
+      } else {
+        alert(data.message || 'Erro ao atualizar convidado.');
+      }
+    } catch (err) {
+      setSavingEdit(false);
+      alert('Erro ao conectar ao servidor para atualizar.');
+    }
+  };
+
+  const handleDeleteGuest = async (guest) => {
+    const guestName = guest.name || guest.guestName || guest.code;
+    if (!confirm(`Deseja realmente remover o convidado "${guestName}" (${guest.code})? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/guests/${guest.code}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': password }
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadAdminData(password);
+        setActionFeedback({ type: 'success', message: `Convidado "${guestName}" removido com sucesso.` });
+      } else {
+        alert(data.message || 'Erro ao remover convidado.');
+      }
+    } catch (err) {
+      alert('Erro ao comunicar com o servidor.');
+    }
+  };
+
+  const handleMigrateToAlphanumeric = async () => {
+    if (!confirm('Atenção: Deseja converter TODOS os convites atuais para novos códigos alfanuméricos aleatórios únicos? Os links de acesso mudarão para os novos códigos.')) {
+      return;
+    }
+
+    setMigrateLoading(true);
+    try {
+      const res = await fetch('/api/admin/guests/migrate-alphanumeric', {
+        method: 'POST',
+        headers: { 'Authorization': password }
+      });
+      const data = await res.json();
+      setMigrateLoading(false);
+      if (data.success) {
+        alert(data.message || 'Convites convertidos com sucesso!');
+        loadAdminData(password);
+      } else {
+        alert(data.message || 'Erro ao converter convites.');
+      }
+    } catch (err) {
+      setMigrateLoading(false);
+      alert('Erro ao comunicar com o servidor.');
+    }
+  };
+
+  const handleDownloadFullCSV = () => {
+    if (!rsvps || rsvps.length === 0) {
+      alert('Nenhum convidado cadastrado.');
+      return;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,Nome,Codigo do Convite,Status,Observacoes,Data Confirmacao,Link do Convite\n";
+    rsvps.forEach(item => {
+      const name = (item.name || item.guestName || '').replace(/"/g, '""');
+      const code = item.code || '';
+      const status = item.confirmed ? 'Confirmado' : 'Pendente';
+      const obs = (item.message || '').replace(/"/g, '""');
+      const confirmedDate = item.confirmedAt ? (item.confirmedAt._seconds ? new Date(item.confirmedAt._seconds * 1000).toLocaleString('pt-BR') : new Date(item.confirmedAt).toLocaleString('pt-BR')) : '';
+      const link = `${window.location.origin}/?convite=${code}`;
+      csvContent += `"${name}","${code}","${status}","${obs}","${confirmedDate}","${link}"\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const downloadLink = document.createElement("a");
+    downloadLink.setAttribute("href", encodedUri);
+    downloadLink.setAttribute("download", `lista_completa_convidados_casamento_${Date.now()}.csv`);
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  };
+
   const handleAddGuest = async (e) => {
     e.preventDefault();
-    if (!newGuestCode || !newGuestName) return;
+    if (!newGuestName.trim()) {
+      alert('Por favor, digite o nome do convidado.');
+      return;
+    }
 
     try {
       const res = await fetch('/api/admin/guests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': password },
-        body: JSON.stringify({ code: newGuestCode.toUpperCase(), name: newGuestName })
+        body: JSON.stringify({ 
+          code: newGuestCode ? newGuestCode.toUpperCase().trim() : undefined, 
+          name: newGuestName.trim() 
+        })
       });
       const data = await res.json();
       if (data.success) {
         loadAdminData(password);
         setNewGuestCode('');
         setNewGuestName('');
+        setActionFeedback({ type: 'success', message: `Convidado "${newGuestName}" cadastrado com sucesso!` });
       } else {
         alert(data.message || 'Erro ao adicionar convidado');
       }
@@ -257,7 +405,7 @@ export default function Admin() {
       line = line.trim();
       if (!line) continue;
 
-      // Se for CSV (ex: "Maria Silva,MARIA-101" ou apenas "Maria Silva")
+      // Se for CSV (ex: "Maria Silva,K9N4P2" ou apenas "Maria Silva")
       if (line.includes(',')) {
         const parts = line.split(',');
         const namePart = parts[0].trim();
@@ -304,9 +452,10 @@ export default function Admin() {
   const handleDownloadCSV = () => {
     if (!bulkResult || bulkResult.length === 0) return;
 
-    let csvContent = "data:text/csv;charset=utf-8,Nome,Codigo do Convite\n";
+    let csvContent = "data:text/csv;charset=utf-8,Nome,Codigo do Convite,Link do Convite\n";
     bulkResult.forEach(item => {
-      csvContent += `"${item.name}","${item.code}"\n`;
+      const link = `${window.location.origin}/?convite=${item.code}`;
+      csvContent += `"${item.name}","${item.code}","${link}"\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
@@ -418,17 +567,119 @@ export default function Admin() {
         )}
 
         {activeTab === 'rsvps' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
             
+            {/* Feedback / Notificações */}
+            {actionFeedback && (
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: actionFeedback.type === 'success' ? '#EAF8EE' : '#FDE8E8',
+                color: actionFeedback.type === 'success' ? '#1E7E34' : '#9B1C1C',
+                border: `1px solid ${actionFeedback.type === 'success' ? '#A3E6B4' : '#F8B4B4'}`
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {actionFeedback.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                  <span>{actionFeedback.message}</span>
+                </div>
+                <button onClick={() => setActionFeedback(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}>
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+
+            {/* Barra de Métricas e Ações Gerais */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '15px',
+              padding: '18px 24px',
+              backgroundColor: '#FAF6F0',
+              borderRadius: '12px',
+              border: '1px solid #E8DDCE'
+            }}>
+              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={20} color="var(--color-marrom)" />
+                  <span style={{ fontSize: '14px', color: '#555' }}>
+                    Total: <strong style={{ color: 'var(--color-marrom)', fontSize: '16px' }}>{rsvps.length}</strong>
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#28A745' }}></span>
+                  <span style={{ fontSize: '14px', color: '#555' }}>
+                    Confirmados: <strong style={{ color: '#28A745', fontSize: '16px' }}>{rsvps.filter(r => r.confirmed).length}</strong>
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#D35400' }}></span>
+                  <span style={{ fontSize: '14px', color: '#555' }}>
+                    Pendentes: <strong style={{ color: '#D35400', fontSize: '16px' }}>{rsvps.filter(r => !r.confirmed).length}</strong>
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  onClick={handleDownloadFullCSV}
+                  style={{
+                    padding: '8px 14px',
+                    backgroundColor: '#FFF',
+                    color: 'var(--color-marrom)',
+                    border: '1px solid #D3C3B9',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                  title="Baixar lista completa em arquivo CSV contendo links personalizados"
+                >
+                  <Download size={15} /> Exportar Lista com Links (CSV)
+                </button>
+
+                <button
+                  onClick={handleMigrateToAlphanumeric}
+                  disabled={migrateLoading}
+                  style={{
+                    padding: '8px 14px',
+                    backgroundColor: '#7F8F6A',
+                    color: '#FFF',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: migrateLoading ? 'not-allowed' : 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    opacity: migrateLoading ? 0.7 : 1
+                  }}
+                  title="Converter todos os convites para novos códigos alfanuméricos aleatórios"
+                >
+                  <RefreshCw size={15} className={migrateLoading ? 'spin' : ''} />
+                  {migrateLoading ? 'Convertendo...' : 'Converter Todos p/ Alfanumérico'}
+                </button>
+              </div>
+            </div>
+
             {/* Bloco de Upload e Gerador de Códigos em Massa */}
-            <div style={{...styles.card, border: '1.5px solid var(--color-marrom)', backgroundColor: '#FAF6F0'}}>
+            <div style={{...styles.card, border: '1.5px solid var(--color-marrom)', backgroundColor: '#FAF6F0', marginBottom: 0}}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <h3 style={{...styles.cardTitle, color: 'var(--color-marrom)', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                    <Sparkles size={20} color="var(--color-marrom)" /> Gerador de Códigos de Convite em Massa
+                    <Sparkles size={20} color="var(--color-marrom)" /> Gerador de Códigos Alfanuméricos em Massa
                   </h3>
                   <p style={styles.cardSubtitle}>
-                    Faça upload de um arquivo <strong>.TXT</strong> ou <strong>.CSV</strong> contendo a lista de convidados (um por linha) ou cole abaixo. O sistema criará os códigos únicos e os salvará automaticamente no banco.
+                    Cole uma lista de nomes ou faça upload de um arquivo TXT/CSV. O sistema gerará <strong>códigos alfanuméricos aleatórios e únicos de 6 dígitos</strong> (sem nenhuma ordem de sequência) e salvará diretamente no banco.
                   </p>
                 </div>
                 <button 
@@ -477,11 +728,11 @@ export default function Admin() {
                       <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '6px' }}>
                         2. Ou cole/edite a lista de convidados (um nome por linha):
                       </label>
-                      <textarea
-                        rows="6"
-                        placeholder="Exemplo:&#10;Leonardo Yuuki&#10;Mariana Silva&#10;Família Allemany&#10;Carlos Eduardo"
-                        value={bulkText}
-                        onChange={(e) => setBulkText(e.target.value)}
+                      <textarea 
+                        rows="6" 
+                        placeholder="Exemplo:&#10;Leonardo Yuuki&#10;Mariana Silva&#10;Família Allemany&#10;Carlos Eduardo" 
+                        value={bulkText} 
+                        onChange={(e) => setBulkText(e.target.value)} 
                         style={{
                           width: '100%',
                           padding: '12px',
@@ -512,7 +763,7 @@ export default function Admin() {
                         fontSize: '14px'
                       }}
                     >
-                      {bulkLoading ? 'Gerando Códigos no Banco...' : '⚡ Gerar Códigos e Cadastrar no Banco'}
+                      {bulkLoading ? 'Gerando Códigos no Banco...' : '⚡ Gerar Códigos Alfanuméricos e Salvar'}
                     </button>
                   </form>
 
@@ -521,7 +772,7 @@ export default function Admin() {
                     <div style={{ marginTop: '24px', padding: '20px', backgroundColor: '#FFF', borderRadius: '8px', border: '1px solid #A9B39A' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
                         <h4 style={{ margin: 0, color: 'var(--color-marrom)', fontSize: '16px' }}>
-                          ✅ {bulkResult.length} Convites Gerados e Salvos no Banco!
+                          ✅ {bulkResult.length} Convites Alfanuméricos Salvos no Banco!
                         </h4>
                         <button
                           onClick={handleDownloadCSV}
@@ -538,16 +789,17 @@ export default function Admin() {
                             gap: '6px'
                           }}
                         >
-                          <Download size={14} /> Baixar Lista em CSV
+                          <Download size={14} /> Baixar CSV com Links
                         </button>
                       </div>
 
-                      <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #EEE', borderRadius: '6px' }}>
+                      <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #EEE', borderRadius: '6px' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
                           <thead>
                             <tr style={{ backgroundColor: '#FAF6F0', borderBottom: '1px solid #DDD' }}>
                               <th style={{ padding: '8px 12px' }}>Nome do Convidado</th>
-                              <th style={{ padding: '8px 12px' }}>Código do Convite Gerado</th>
+                              <th style={{ padding: '8px 12px' }}>Código</th>
+                              <th style={{ padding: '8px 12px', textAlign: 'center' }}>Link Direto</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -555,6 +807,26 @@ export default function Admin() {
                               <tr key={i} style={{ borderBottom: '1px solid #EEE' }}>
                                 <td style={{ padding: '8px 12px' }}>{item.name}</td>
                                 <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontWeight: 'bold', color: 'var(--color-marrom)' }}>{item.code}</td>
+                                <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                                  <button
+                                    onClick={() => handleCopyLink(item.code)}
+                                    style={{
+                                      padding: '4px 8px',
+                                      backgroundColor: copiedCode === item.code ? '#EAF8EE' : '#F0F0F0',
+                                      color: copiedCode === item.code ? '#1E7E34' : '#333',
+                                      border: '1px solid #CCC',
+                                      borderRadius: '4px',
+                                      fontSize: '11px',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}
+                                  >
+                                    {copiedCode === item.code ? <Check size={12} /> : <Copy size={12} />}
+                                    {copiedCode === item.code ? 'Copiado!' : 'Copiar Link'}
+                                  </button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -566,72 +838,406 @@ export default function Admin() {
               )}
             </div>
 
+            {/* Campo de Busca Rápida de Convidados */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              backgroundColor: '#FFF',
+              padding: '12px 18px',
+              borderRadius: '10px',
+              border: '1px solid #EAEAEA'
+            }}>
+              <Search size={18} color="#888" />
+              <input
+                type="text"
+                placeholder="Buscar convidado por nome ou código..."
+                value={searchGuest}
+                onChange={(e) => setSearchGuest(e.target.value)}
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '14px',
+                  width: '100%',
+                  color: '#333'
+                }}
+              />
+              {searchGuest && (
+                <button
+                  onClick={() => setSearchGuest('')}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999' }}
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
             <div style={styles.gridContainer}>
+              {/* Coluna 1: Convidados Confirmados */}
               <div style={styles.card}>
-                <h3 style={styles.cardTitle}>Convidados Confirmados</h3>
-                <p style={styles.cardSubtitle}>Pessoas que validaram o código de convite.</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <h3 style={{ ...styles.cardTitle, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <CheckCircle2 size={18} color="#28A745" /> Convidados Confirmados ({rsvps.filter(r => r.confirmed && (!searchGuest || (r.guestName || r.name || '').toLowerCase().includes(searchGuest.toLowerCase()) || (r.code || '').toLowerCase().includes(searchGuest.toLowerCase()))).length})
+                  </h3>
+                </div>
+                <p style={styles.cardSubtitle}>Pessoas que já validaram e confirmaram presença.</p>
                 
                 <div style={styles.listContainer}>
-                  {rsvps.filter(r => r.confirmed).length === 0 ? (
-                    <p style={styles.emptyState}>Nenhuma confirmação ainda.</p>
+                  {rsvps.filter(r => r.confirmed && (!searchGuest || (r.guestName || r.name || '').toLowerCase().includes(searchGuest.toLowerCase()) || (r.code || '').toLowerCase().includes(searchGuest.toLowerCase()))).length === 0 ? (
+                    <p style={styles.emptyState}>{searchGuest ? 'Nenhum convidado confirmado com esse termo.' : 'Nenhuma confirmação ainda.'}</p>
                   ) : (
-                    rsvps.filter(r => r.confirmed).map((rsvp, idx) => (
-                      <div key={idx} style={styles.rsvpItem}>
-                        <div>
-                          <strong>{rsvp.guestName}</strong> 
-                          <span style={styles.codeTag}>{rsvp.code}</span>
+                    rsvps
+                      .filter(r => r.confirmed && (!searchGuest || (r.guestName || r.name || '').toLowerCase().includes(searchGuest.toLowerCase()) || (r.code || '').toLowerCase().includes(searchGuest.toLowerCase())))
+                      .map((rsvp, idx) => (
+                        <div key={idx} style={{ ...styles.rsvpItem, borderLeft: '4px solid #28A745' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                            <div>
+                              <strong style={{ fontSize: '15px', color: 'var(--color-marrom)' }}>{rsvp.guestName || rsvp.name}</strong> 
+                              <span style={styles.codeTag}>{rsvp.code}</span>
+                            </div>
+
+                            {/* Ações Rápidas */}
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                              <button
+                                onClick={() => handleCopyLink(rsvp.code)}
+                                style={{
+                                  padding: '4px 8px',
+                                  backgroundColor: copiedCode === rsvp.code ? '#EAF8EE' : '#FFF',
+                                  color: copiedCode === rsvp.code ? '#1E7E34' : '#555',
+                                  border: '1px solid #DDD',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                                title="Copiar link direto do convite para a barra de transferência"
+                              >
+                                {copiedCode === rsvp.code ? <Check size={12} /> : <Copy size={12} />}
+                                {copiedCode === rsvp.code ? 'Copiado!' : 'Link'}
+                              </button>
+
+                              <button
+                                onClick={() => handleCopyWhatsAppText(rsvp)}
+                                style={{
+                                  padding: '4px 8px',
+                                  backgroundColor: copiedCode === rsvp.code + '-wa' ? '#EAF8EE' : '#FFF',
+                                  color: copiedCode === rsvp.code + '-wa' ? '#1E7E34' : '#2D6A4F',
+                                  border: '1px solid #DDD',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                                title="Copiar mensagem personalizada com link para enviar pelo WhatsApp"
+                              >
+                                {copiedCode === rsvp.code + '-wa' ? <CheckCheck size={12} /> : <Share2 size={12} />}
+                                {copiedCode === rsvp.code + '-wa' ? 'Msg Copiada!' : 'WhatsApp'}
+                              </button>
+
+                              <button
+                                onClick={() => handleOpenEdit(rsvp)}
+                                style={{
+                                  padding: '4px 8px',
+                                  backgroundColor: '#FFF',
+                                  color: 'var(--color-marrom)',
+                                  border: '1px solid #DDD',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                                title="Editar nome ou código do convidado"
+                              >
+                                <Edit2 size={12} /> Editar
+                              </button>
+
+                              <button
+                                onClick={() => handleDeleteGuest(rsvp)}
+                                style={{
+                                  padding: '4px 8px',
+                                  backgroundColor: '#FFF',
+                                  color: '#C0392B',
+                                  border: '1px solid #DDD',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                                title="Excluir convidado"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div style={styles.rsvpDetails}>
+                            {rsvp.message && <p style={styles.rsvpNotes}>Obs: {rsvp.message}</p>}
+                            <small style={{ color: '#888' }}>
+                              Confirmado em: {rsvp.confirmedAt ? (rsvp.confirmedAt._seconds ? new Date(rsvp.confirmedAt._seconds * 1000).toLocaleString('pt-BR') : new Date(rsvp.confirmedAt).toLocaleString('pt-BR')) : 'Data Indisponível'}
+                            </small>
+                          </div>
                         </div>
-                        <div style={styles.rsvpDetails}>
-                          {rsvp.message && <p style={styles.rsvpNotes}>Obs: {rsvp.message}</p>}
-                          <small>{rsvp.confirmedAt ? new Date(rsvp.confirmedAt._seconds ? rsvp.confirmedAt._seconds * 1000 : rsvp.confirmedAt).toLocaleString('pt-BR') : 'Data Indisponível'}</small>
-                        </div>
-                      </div>
-                    ))
+                      ))
                   )}
                 </div>
               </div>
 
+              {/* Coluna 2: Adicionar Individual e Lista de Pendentes */}
               <div style={styles.card}>
                 <h3 style={styles.cardTitle}>Gerenciar Convites Individuais</h3>
-                <p style={styles.cardSubtitle}>Crie códigos manualmente para seus convidados.</p>
+                <p style={styles.cardSubtitle}>Crie novos códigos de convite avulsos.</p>
                 
                 <form onSubmit={handleAddGuest} style={styles.addGuestForm}>
                   <div style={styles.inputGroup}>
-                    <label>Código do Convite</label>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)' }}>Nome do Convidado: *</label>
                     <input 
                       type="text" 
-                      placeholder="Ex: FAMILIA-SILVA" 
-                      value={newGuestCode}
-                      onChange={(e) => setNewGuestCode(e.target.value)}
-                      style={styles.input}
-                    />
-                  </div>
-                  <div style={styles.inputGroup}>
-                    <label>Nome Principal</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ex: Família Silva" 
+                      required
+                      placeholder="Ex: Mariana Silva ou Família Allemany" 
                       value={newGuestName}
                       onChange={(e) => setNewGuestName(e.target.value)}
                       style={styles.input}
                     />
                   </div>
+                  <div style={styles.inputGroup}>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)' }}>
+                      Código do Convite (Opcional - se vazio, gerará alfanumérico):
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="Deixe em branco para gerar aleatório (ex: 26SL87)" 
+                      value={newGuestCode}
+                      onChange={(e) => setNewGuestCode(e.target.value)}
+                      style={styles.input}
+                    />
+                  </div>
                   <button type="submit" style={styles.addBtn}>
-                    <Plus size={18} /> Adicionar Convite Individual
+                    <Plus size={18} /> Adicionar Convidado Individual
                   </button>
                 </form>
 
-                <h4 style={{marginTop: 30, color: '#555', fontFamily: 'Inter'}}>Convites Pendentes (Não confirmados - Total: {rsvps.filter(r => !r.confirmed).length})</h4>
-                <div style={{...styles.pendingList, maxHeight: '300px', overflowY: 'auto'}}>
-                  {rsvps.filter(r => !r.confirmed).map((g, idx) => (
-                    <div key={idx} style={styles.pendingItem}>
-                      <span>{g.name}</span>
-                      <span style={styles.codeTag}>{g.code}</span>
-                    </div>
-                  ))}
+                <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h4 style={{ margin: 0, color: '#444', fontFamily: 'Inter', fontSize: '15px' }}>
+                    Convites Pendentes ({rsvps.filter(r => !r.confirmed && (!searchGuest || (r.name || r.guestName || '').toLowerCase().includes(searchGuest.toLowerCase()) || (r.code || '').toLowerCase().includes(searchGuest.toLowerCase()))).length})
+                  </h4>
+                </div>
+
+                <div style={{...styles.pendingList, maxHeight: '420px', overflowY: 'auto'}}>
+                  {rsvps.filter(r => !r.confirmed && (!searchGuest || (r.name || r.guestName || '').toLowerCase().includes(searchGuest.toLowerCase()) || (r.code || '').toLowerCase().includes(searchGuest.toLowerCase()))).length === 0 ? (
+                    <p style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '13px' }}>
+                      {searchGuest ? 'Nenhum convite pendente encontrado com esse termo.' : 'Todos os convidados confirmaram presença! 🎉'}
+                    </p>
+                  ) : (
+                    rsvps
+                      .filter(r => !r.confirmed && (!searchGuest || (r.name || r.guestName || '').toLowerCase().includes(searchGuest.toLowerCase()) || (r.code || '').toLowerCase().includes(searchGuest.toLowerCase())))
+                      .map((g, idx) => (
+                        <div key={idx} style={{ ...styles.pendingItem, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: '600', color: '#333' }}>{g.name || g.guestName}</span>
+                            <span style={styles.codeTag}>{g.code}</span>
+                          </div>
+
+                          {/* Ações do Convidado Pendente */}
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center', borderTop: '1px solid #F5F5F5', paddingTop: '6px' }}>
+                            <button
+                              onClick={() => handleCopyLink(g.code)}
+                              style={{
+                                padding: '3px 8px',
+                                backgroundColor: copiedCode === g.code ? '#EAF8EE' : '#F9F9F9',
+                                color: copiedCode === g.code ? '#1E7E34' : '#555',
+                                border: '1px solid #DDD',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                              title="Copiar link com código preenchido para o convidado"
+                            >
+                              {copiedCode === g.code ? <Check size={12} /> : <Copy size={12} />}
+                              {copiedCode === g.code ? 'Copiado!' : 'Copiar Link'}
+                            </button>
+
+                            <button
+                              onClick={() => handleCopyWhatsAppText(g)}
+                              style={{
+                                padding: '3px 8px',
+                                backgroundColor: copiedCode === g.code + '-wa' ? '#EAF8EE' : '#F9F9F9',
+                                color: copiedCode === g.code + '-wa' ? '#1E7E34' : '#2D6A4F',
+                                border: '1px solid #DDD',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                              title="Copiar texto de convite pronto para WhatsApp"
+                            >
+                              {copiedCode === g.code + '-wa' ? <CheckCheck size={12} /> : <Share2 size={12} />}
+                              {copiedCode === g.code + '-wa' ? 'Msg Copiada!' : 'WhatsApp'}
+                            </button>
+
+                            <button
+                              onClick={() => handleOpenEdit(g)}
+                              style={{
+                                padding: '3px 8px',
+                                backgroundColor: '#F9F9F9',
+                                color: 'var(--color-marrom)',
+                                border: '1px solid #DDD',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                              title="Editar nome ou código do convidado"
+                            >
+                              <Edit2 size={12} /> Editar
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteGuest(g)}
+                              style={{
+                                padding: '3px 8px',
+                                backgroundColor: '#F9F9F9',
+                                color: '#C0392B',
+                                border: '1px solid #DDD',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                              title="Excluir convidado"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                  )}
                 </div>
               </div>
             </div>
+
+            {/* Modal de Edição de Convidado */}
+            {editingGuest && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 9999,
+                padding: '20px'
+              }}>
+                <div style={{
+                  backgroundColor: '#FFF',
+                  borderRadius: '12px',
+                  padding: '30px',
+                  width: '100%',
+                  maxWidth: '480px',
+                  boxShadow: '0 15px 35px rgba(0,0,0,0.2)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h3 style={{ margin: 0, color: 'var(--color-marrom)', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Edit2 size={20} /> Editar Convidado
+                    </h3>
+                    <button
+                      onClick={() => setEditingGuest(null)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888' }}
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '6px' }}>
+                        Nome do Convidado:
+                      </label>
+                      <input 
+                        type="text" 
+                        required
+                        value={editingGuest.name}
+                        onChange={(e) => setEditingGuest({ ...editingGuest, name: e.target.value })}
+                        style={styles.input}
+                        autoFocus
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '6px' }}>
+                        Código do Convite:
+                      </label>
+                      <input 
+                        type="text" 
+                        required
+                        value={editingGuest.newCode}
+                        onChange={(e) => setEditingGuest({ ...editingGuest, newCode: e.target.value.toUpperCase() })}
+                        style={{ ...styles.input, fontFamily: 'monospace' }}
+                      />
+                      <small style={{ color: '#888', fontSize: '11px', marginTop: '4px', display: 'block' }}>
+                        Se alterar o código, o link anterior deixará de funcionar.
+                      </small>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setEditingGuest(null)}
+                        style={{
+                          padding: '10px 18px',
+                          backgroundColor: '#F0F0F0',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontWeight: '600',
+                          color: '#666'
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={savingEdit}
+                        style={{
+                          padding: '10px 20px',
+                          backgroundColor: 'var(--color-accent)',
+                          color: '#FFF',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: savingEdit ? 'not-allowed' : 'pointer',
+                          fontWeight: 'bold',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        {savingEdit ? 'Salvando...' : 'Salvar Alterações'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
           </div>
         )}
 

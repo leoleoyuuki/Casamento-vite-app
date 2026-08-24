@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { CheckCircle, KeyRound, Users, Heart, Sparkles, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CheckCircle, KeyRound, Users, Heart, Sparkles, Check, Loader2 } from 'lucide-react';
 import { GUEST_LIST } from '../data/rsvpsData';
 
 export default function RSVP() {
@@ -13,16 +13,42 @@ export default function RSVP() {
   const [totalGuests, setTotalGuests] = useState(1);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [isValidating, setIsValidating] = useState(false);
 
-  const handleValidateCode = async (e) => {
-    e.preventDefault();
+  // Leitura Automática de Parâmetros na URL (?convite=XXXX ou ?code=XXXX)
+  useEffect(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      // Suporte também a parâmetros dentro do hash (ex: /#rsvp?convite=XXXX)
+      let hashParams = new URLSearchParams();
+      if (window.location.hash && window.location.hash.includes('?')) {
+        hashParams = new URLSearchParams(window.location.hash.split('?')[1]);
+      }
+
+      const paramCode = searchParams.get('convite') || 
+                        searchParams.get('code') || 
+                        searchParams.get('c') || 
+                        searchParams.get('rsvp') ||
+                        hashParams.get('convite') ||
+                        hashParams.get('code') ||
+                        hashParams.get('c');
+
+      if (paramCode) {
+        const cleanCode = paramCode.trim().toUpperCase();
+        setGuestCode(cleanCode);
+        validateCode(cleanCode, true);
+      }
+    } catch (e) {
+      console.warn('Erro ao processar parâmetro de URL:', e);
+    }
+  }, []);
+
+  const validateCode = async (codeToVerify, fromUrl = false) => {
     setErrorMsg(null);
     setSuccessMsg(null);
     setIsValidating(true);
 
-    const cleanCode = guestCode.trim().toUpperCase();
+    const cleanCode = codeToVerify.trim().toUpperCase();
 
     try {
       const res = await fetch('/api/rsvp/verify', {
@@ -37,6 +63,15 @@ export default function RSVP() {
         setActiveGuest(data.guest);
         setMainName(data.guest.name);
         setTotalGuests(1);
+
+        if (fromUrl) {
+          setTimeout(() => {
+            const rsvpElement = document.getElementById('rsvp');
+            if (rsvpElement) {
+              rsvpElement.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 300);
+        }
       } else {
         setErrorMsg(data.message || 'Código não encontrado na lista fechada. Verifique seu convite ou digite o código correto.');
       }
@@ -44,6 +79,12 @@ export default function RSVP() {
       setIsValidating(false);
       setErrorMsg('Erro de comunicação com o servidor. Tente novamente.');
     }
+  };
+
+  const handleValidateCode = async (e) => {
+    e.preventDefault();
+    if (!guestCode.trim()) return;
+    validateCode(guestCode, false);
   };
 
   const handleConfirmRsvp = async (e) => {
@@ -127,7 +168,7 @@ export default function RSVP() {
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   <input 
                     type="text" 
-                    placeholder="Ex: ANA-101 ou DENER-202" 
+                    placeholder="Ex: 26SL87 ou FLSPCE" 
                     value={guestCode} 
                     onChange={(e) => setGuestCode(e.target.value)}
                     style={{
@@ -142,17 +183,17 @@ export default function RSVP() {
                       outline: 'none'
                     }}
                   />
-                  <button type="submit" className="btn btn-primary" style={{ padding: '14px 28px', display: 'flex', gap: '8px' }} disabled={isValidating}>
-                  {isValidating ? 'Validando...' : 'Validar Convite'} <CheckCircle size={18} />
-                </button>
+                  <button type="submit" className="btn btn-primary" style={{ padding: '14px 28px', display: 'flex', gap: '8px', alignItems: 'center' }} disabled={isValidating}>
+                    {isValidating ? 'Validando...' : 'Validar Convite'} <CheckCircle size={18} />
+                  </button>
                 </div>
 
                 {errorMsg && (
                   <p style={{ color: '#9B1C1C', fontSize: '13px', marginTop: '14px' }}>{errorMsg}</p>
                 )}
 
-                <div style={{ marginTop: '24px', padding: '12px 16px', backgroundColor: 'rgba(232, 221, 207, 0.4)', borderRadius: 'var(--radius-sm)', fontSize: '12px', color: 'var(--text-muted)' }}>
-                  <strong>Códigos de Demonstração para Teste:</strong> <code>ANA-101</code>, <code>DENER-202</code>, <code>CASAL-2026</code>, <code>AMIGOS-01</code>.
+                <div style={{ marginTop: '20px', padding: '12px 16px', backgroundColor: 'rgba(232, 221, 207, 0.4)', borderRadius: 'var(--radius-sm)', fontSize: '12px', color: 'var(--text-muted)' }}>
+                  💡 Cada convite possui um <strong>código alfanumérico exclusivo</strong> de 6 caracteres enviado pelos noivos.
                 </div>
               </form>
             ) : (
