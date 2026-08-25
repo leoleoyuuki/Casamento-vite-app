@@ -13,6 +13,7 @@ import MessageBoard from './components/MessageBoard';
 import Footer from './components/Footer';
 
 import Admin from './components/Admin';
+import InteractiveInvite from './components/InteractiveInvite';
 
 export default function App() {
   const [selectedGift, setSelectedGift] = useState(null);
@@ -22,6 +23,10 @@ export default function App() {
   
   if (path === '/admin') {
     return <Admin />;
+  }
+
+  if (path === '/convite' || path === '/convite-interativo') {
+    return <InteractiveInvite />;
   }
 
   return (

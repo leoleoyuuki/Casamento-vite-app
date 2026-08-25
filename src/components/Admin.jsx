@@ -216,12 +216,28 @@ export default function Admin() {
     setTimeout(() => setCopiedCode(null), 3000);
   };
 
+  const handleCopyEnvelopeLink = (code) => {
+    const url = `${window.location.origin}/convite?convite=${code}`;
+    navigator.clipboard.writeText(url);
+    setCopiedCode(code + '-env');
+    setTimeout(() => setCopiedCode(null), 3000);
+  };
+
   const handleCopyWhatsAppText = (guest) => {
     const guestName = guest.name || guest.guestName || 'Convidado Especial';
     const url = `${window.location.origin}/?convite=${guest.code}`;
     const text = `Olá ${guestName}! ✨\n\nVocê é muito especial para nós e ficaremos imensamente felizes com a sua presença no nosso casamento! 💍🤍\n\nAcesse o link abaixo para conferir as informações e confirmar sua presença:\n${url}\n\nCom carinho,\nAna Clara & Dener`;
     navigator.clipboard.writeText(text);
     setCopiedCode(guest.code + '-wa');
+    setTimeout(() => setCopiedCode(null), 3000);
+  };
+
+  const handleCopyEnvelopeWhatsAppText = (guest) => {
+    const guestName = guest.name || guest.guestName || 'Convidado Especial';
+    const url = `${window.location.origin}/convite?convite=${guest.code}`;
+    const text = `Olá ${guestName}! ✨✉️\n\nPreparamos um convite interativo muito especial para você! Abra o envelope no link abaixo:\n${url}\n\nCom todo nosso amor e carinho,\nAna Clara & Dener 💍🤍`;
+    navigator.clipboard.writeText(text);
+    setCopiedCode(guest.code + '-env-wa');
     setTimeout(() => setCopiedCode(null), 3000);
   };
 
@@ -912,10 +928,31 @@ export default function Admin() {
                                   alignItems: 'center',
                                   gap: '4px'
                                 }}
-                                title="Copiar link direto do convite para a barra de transferência"
+                                title="Copiar link direto do convite para o site"
                               >
                                 {copiedCode === rsvp.code ? <Check size={12} /> : <Copy size={12} />}
-                                {copiedCode === rsvp.code ? 'Copiado!' : 'Link'}
+                                {copiedCode === rsvp.code ? 'Copiado!' : 'Site'}
+                              </button>
+
+                              <button
+                                onClick={() => handleCopyEnvelopeLink(rsvp.code)}
+                                style={{
+                                  padding: '4px 8px',
+                                  backgroundColor: copiedCode === rsvp.code + '-env' ? '#EAF8EE' : '#FFF',
+                                  color: copiedCode === rsvp.code + '-env' ? '#1E7E34' : '#745D57',
+                                  border: '1px solid #DDD',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontWeight: 600
+                                }}
+                                title="Copiar link do Convite Interativo (Envelope 3D + Música)"
+                              >
+                                {copiedCode === rsvp.code + '-env' ? <Check size={12} /> : '✉️'}
+                                {copiedCode === rsvp.code + '-env' ? 'Copiado!' : 'Envelope'}
                               </button>
 
                               <button
@@ -1061,10 +1098,31 @@ export default function Admin() {
                                 alignItems: 'center',
                                 gap: '4px'
                               }}
-                              title="Copiar link com código preenchido para o convidado"
+                              title="Copiar link com código para o site"
                             >
                               {copiedCode === g.code ? <Check size={12} /> : <Copy size={12} />}
-                              {copiedCode === g.code ? 'Copiado!' : 'Copiar Link'}
+                              {copiedCode === g.code ? 'Copiado!' : 'Site'}
+                            </button>
+
+                            <button
+                              onClick={() => handleCopyEnvelopeLink(g.code)}
+                              style={{
+                                padding: '3px 8px',
+                                backgroundColor: copiedCode === g.code + '-env' ? '#EAF8EE' : '#F9F9F9',
+                                color: copiedCode === g.code + '-env' ? '#1E7E34' : '#745D57',
+                                border: '1px solid #DDD',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontWeight: 600
+                              }}
+                              title="Copiar link do Convite Interativo (Envelope 3D + Música)"
+                            >
+                              {copiedCode === g.code + '-env' ? <Check size={12} /> : '✉️'}
+                              {copiedCode === g.code + '-env' ? 'Copiado!' : 'Envelope'}
                             </button>
 
                             <button
