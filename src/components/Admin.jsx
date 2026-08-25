@@ -210,7 +210,7 @@ export default function Admin() {
   };
 
   const handleCopyLink = (code) => {
-    const url = `${window.location.origin}/?convite=${code}`;
+    const url = `${window.location.origin}/convite?convite=${code}`;
     navigator.clipboard.writeText(url);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 3000);
@@ -223,10 +223,17 @@ export default function Admin() {
     setTimeout(() => setCopiedCode(null), 3000);
   };
 
+  const handleCopyDirectSiteLink = (code) => {
+    const url = `${window.location.origin}/?convite=${code}`;
+    navigator.clipboard.writeText(url);
+    setCopiedCode(code + '-site');
+    setTimeout(() => setCopiedCode(null), 3000);
+  };
+
   const handleCopyWhatsAppText = (guest) => {
     const guestName = guest.name || guest.guestName || 'Convidado Especial';
-    const url = `${window.location.origin}/?convite=${guest.code}`;
-    const text = `Olá ${guestName}! ✨\n\nVocê é muito especial para nós e ficaremos imensamente felizes com a sua presença no nosso casamento! 💍🤍\n\nAcesse o link abaixo para conferir as informações e confirmar sua presença:\n${url}\n\nCom carinho,\nAna Clara & Dener`;
+    const url = `${window.location.origin}/convite?convite=${guest.code}`;
+    const text = `Olá ${guestName}! ✨✉️\n\nPreparamos um convite interativo muito especial para você! Abra o envelope no link abaixo:\n${url}\n\nCom todo nosso amor e carinho,\nAna Clara & Dener 💍🤍`;
     navigator.clipboard.writeText(text);
     setCopiedCode(guest.code + '-wa');
     setTimeout(() => setCopiedCode(null), 3000);
@@ -339,15 +346,16 @@ export default function Admin() {
       return;
     }
 
-    let csvContent = "data:text/csv;charset=utf-8,Nome,Codigo do Convite,Status,Observacoes,Data Confirmacao,Link do Convite\n";
+    let csvContent = "data:text/csv;charset=utf-8,Nome,Codigo do Convite,Status,Observacoes,Data Confirmacao,Link do Convite (Envelope),Link Direto do Site\n";
     rsvps.forEach(item => {
       const name = (item.name || item.guestName || '').replace(/"/g, '""');
       const code = item.code || '';
       const status = item.confirmed ? 'Confirmado' : 'Pendente';
       const obs = (item.message || '').replace(/"/g, '""');
       const confirmedDate = item.confirmedAt ? (item.confirmedAt._seconds ? new Date(item.confirmedAt._seconds * 1000).toLocaleString('pt-BR') : new Date(item.confirmedAt).toLocaleString('pt-BR')) : '';
-      const link = `${window.location.origin}/?convite=${code}`;
-      csvContent += `"${name}","${code}","${status}","${obs}","${confirmedDate}","${link}"\n`;
+      const envelopeLink = `${window.location.origin}/convite?convite=${code}`;
+      const directSiteLink = `${window.location.origin}/?convite=${code}`;
+      csvContent += `"${name}","${code}","${status}","${obs}","${confirmedDate}","${envelopeLink}","${directSiteLink}"\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
@@ -468,10 +476,11 @@ export default function Admin() {
   const handleDownloadCSV = () => {
     if (!bulkResult || bulkResult.length === 0) return;
 
-    let csvContent = "data:text/csv;charset=utf-8,Nome,Codigo do Convite,Link do Convite\n";
+    let csvContent = "data:text/csv;charset=utf-8,Nome,Codigo do Convite,Link do Convite (Envelope),Link Direto do Site\n";
     bulkResult.forEach(item => {
-      const link = `${window.location.origin}/?convite=${item.code}`;
-      csvContent += `"${item.name}","${item.code}","${link}"\n`;
+      const envelopeLink = `${window.location.origin}/convite?convite=${item.code}`;
+      const directSiteLink = `${window.location.origin}/?convite=${item.code}`;
+      csvContent += `"${item.name}","${item.code}","${envelopeLink}","${directSiteLink}"\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
@@ -815,7 +824,7 @@ export default function Admin() {
                             <tr style={{ backgroundColor: '#FAF6F0', borderBottom: '1px solid #DDD' }}>
                               <th style={{ padding: '8px 12px' }}>Nome do Convidado</th>
                               <th style={{ padding: '8px 12px' }}>Código</th>
-                              <th style={{ padding: '8px 12px', textAlign: 'center' }}>Link Direto</th>
+                              <th style={{ padding: '8px 12px', textAlign: 'center' }}>Link do Convite (Envelope)</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -838,9 +847,10 @@ export default function Admin() {
                                       alignItems: 'center',
                                       gap: '4px'
                                     }}
+                                    title="Copiar link do Convite Interativo (Envelope)"
                                   >
                                     {copiedCode === item.code ? <Check size={12} /> : <Copy size={12} />}
-                                    {copiedCode === item.code ? 'Copiado!' : 'Copiar Link'}
+                                    {copiedCode === item.code ? 'Copiado!' : '✉️ Copiar Convite'}
                                   </button>
                                 </td>
                               </tr>
