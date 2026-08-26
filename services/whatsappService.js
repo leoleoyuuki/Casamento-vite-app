@@ -386,6 +386,49 @@ async function clearStoredSession() {
 }
 
 /**
+ * Solicita código de pareamento de 8 dígitos (sem câmera)
+ */
+export async function requestWhatsAppPairingCode(phone) {
+  const externalApiUrl = (process.env.WHATSAPP_API_URL || '').trim().replace(/\/$/, '');
+
+  if (externalApiUrl) {
+    console.log(`🌐 [WHATSAPP MICROSERVIÇO] Solicitando Pairing Code para ${phone} via ${externalApiUrl}...`);
+    const headers = { 'Content-Type': 'application/json' };
+    if (process.env.WHATSAPP_API_KEY) headers['x-api-key'] = process.env.WHATSAPP_API_KEY;
+
+    const res = await fetch(`${externalApiUrl}/api/pairing-code`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ phone })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || `Falha ao solicitar código no microserviço (${res.status})`);
+    }
+    return data;
+  }
+
+  // Fallback: Baileys Local
+  let cleanPhone = String(phone).replace(/\D/g, '');
+  if (cleanPhone.length === 10 || cleanPhone.length === 11) {
+    cleanPhone = '55' + cleanPhone;
+  }
+
+  if (!sock || connectionStatus === 'DISCONNECTED') {
+    await initWhatsAppClient();
+    await new Promise(r => setTimeout(r, 2000));
+  }
+
+  if (sock?.authState?.creds?.registered) {
+    return { success: true, message: 'WhatsApp já está conectado.', isConnected: true };
+  }
+
+  const code = await sock.requestPairingCode(cleanPhone);
+  return { success: true, pairingCode: code, phone: cleanPhone };
+}
+
+/**
  * Desconecta e limpa a sessão do WhatsApp
  */
 export async function logoutWhatsApp() {

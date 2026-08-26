@@ -10,7 +10,8 @@ import {
   getWhatsAppStatus, 
   sendGiftThankYouWhatsApp, 
   sendWhatsAppTextMessage, 
-  logoutWhatsApp 
+  logoutWhatsApp,
+  requestWhatsAppPairingCode
 } from './services/whatsappService.js';
 
 dotenv.config();
@@ -695,6 +696,20 @@ app.post('/api/whatsapp/connect', async (req, res) => {
     const status = await getWhatsAppStatus();
     res.json({ success: true, message: 'Inicializando WhatsApp...', ...status });
   } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/whatsapp/pairing-code', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Número de telefone é obrigatório.' });
+    }
+    const result = await requestWhatsAppPairingCode(phone);
+    res.json(result);
+  } catch (err) {
+    console.error('[WHATSAPP PAIRING CODE ERRO]:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

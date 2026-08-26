@@ -14,8 +14,11 @@ export default function Admin() {
   const [loading, setLoading] = useState(false);
 
   // WhatsApp State
-  const [waStatus, setWaStatus] = useState({ status: 'DISCONNECTED', isConnected: false, qrCode: null, user: null });
+  const [waStatus, setWaStatus] = useState({ status: 'DISCONNECTED', isConnected: false, qrCode: null, pairingCode: null, user: null });
   const [waLoading, setWaLoading] = useState(false);
+  const [pairingPhone, setPairingPhone] = useState('');
+  const [pairingCode, setPairingCode] = useState(null);
+  const [pairingLoading, setPairingLoading] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testMsg, setTestMsg] = useState('');
   const [testSending, setTestSending] = useState(false);
@@ -145,6 +148,34 @@ export default function Admin() {
     }, 4000);
     return () => clearInterval(interval);
   }, [isAuthenticated, activeTab]);
+
+  const handleRequestPairingCode = async (e) => {
+    if (e) e.preventDefault();
+    if (!pairingPhone.trim()) {
+      alert('Por favor, digite o número do WhatsApp dos noivos com DDD.');
+      return;
+    }
+    setPairingLoading(true);
+    try {
+      const res = await fetch('/api/whatsapp/pairing-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: pairingPhone.trim() })
+      });
+      const data = await res.json();
+      setPairingLoading(false);
+      if (data.success && data.pairingCode) {
+        setPairingCode(data.pairingCode);
+        setWaStatus(prev => ({ ...prev, pairingCode: data.pairingCode, pairingPhone: data.phone }));
+        setActionFeedback({ type: 'success', message: 'Código de pareamento de 8 dígitos gerado com sucesso!' });
+      } else {
+        alert(data.message || 'Erro ao gerar código de pareamento.');
+      }
+    } catch (err) {
+      setPairingLoading(false);
+      alert('Erro de comunicação ao gerar código.');
+    }
+  };
 
   const handleConnectWhatsApp = async () => {
     setWaLoading(true);
@@ -1559,55 +1590,162 @@ export default function Admin() {
                     </div>
                   )}
                 </div>
-              ) : waStatus.qrCode ? (
-                /* QR Code Pronto para Escaneamento */
-                <div style={{ padding: '24px', backgroundColor: '#FFF9E6', borderRadius: '12px', border: '1px solid #F5D77F', textAlign: 'center' }}>
-                  <h4 style={{ color: '#B7791F', fontSize: '20px', marginBottom: '8px' }}>
-                    📱 Escaneie o QR Code com o WhatsApp dos Noivos
-                  </h4>
-                  <p style={{ fontSize: '14px', color: '#744210', maxWidth: '500px', margin: '0 auto 20px auto', lineHeight: 1.5 }}>
-                    1. Abra o WhatsApp no celular dos noivos.<br />
-                    2. Vá em <strong>Configurações</strong> &gt; <strong>Aparelhos Conectados</strong> &gt; <strong>Conectar Aparelho</strong>.<br />
-                    3. Aponte a câmera para o QR Code abaixo:
-                  </p>
-
-                  <div style={{ display: 'inline-block', padding: '16px', backgroundColor: '#FFF', borderRadius: '16px', boxShadow: '0 8px 25px rgba(0,0,0,0.1)', marginBottom: '16px' }}>
-                    <img 
-                      src={waStatus.qrCode} 
-                      alt="QR Code WhatsApp" 
-                      style={{ width: '260px', height: '260px', display: 'block' }} 
-                    />
-                  </div>
-
-                  <div>
-                    <button 
-                      onClick={handleConnectWhatsApp} 
-                      disabled={waLoading}
-                      style={{ ...styles.addGuestBtn, margin: '0 auto', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-                    >
-                      <RefreshCw size={16} className={waLoading ? 'spin' : ''} /> 
-                      {waLoading ? 'Gerando novo código...' : 'Gerar Novo QR Code'}
-                    </button>
-                  </div>
-                </div>
               ) : (
-                /* Desconectado */
-                <div style={{ padding: '30px', backgroundColor: '#F8F9FA', borderRadius: '12px', border: '1px dashed #CCC', textAlign: 'center' }}>
-                  <Smartphone size={48} color="#888" style={{ marginBottom: '12px' }} />
-                  <h4 style={{ color: '#444', fontSize: '18px', marginBottom: '8px' }}>
-                    WhatsApp Desconectado
-                  </h4>
-                  <p style={{ fontSize: '14px', color: '#666', maxWidth: '450px', margin: '0 auto 20px auto' }}>
-                    Clique no botão abaixo para iniciar o cliente e gerar o QR Code de conexão.
-                  </p>
-                  <button 
-                    onClick={handleConnectWhatsApp} 
-                    disabled={waLoading}
-                    style={{ ...styles.addGuestBtn, padding: '12px 24px', fontSize: '15px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-                  >
-                    <Smartphone size={18} /> 
-                    {waLoading ? 'Iniciando WhatsApp...' : 'Conectar WhatsApp dos Noivos'}
-                  </button>
+                /* Desconectado ou Aguardando Pareamento / QR */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  
+                  {/* OPÇÃO 1: CONECTAR POR CÓDIGO DE 8 DÍGITOS (SEM CÂMERA) */}
+                  <div style={{ padding: '24px', backgroundColor: '#F8FBF9', borderRadius: '12px', border: '2px solid #C3E6CB' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '20px' }}>✨</span>
+                      <h4 style={{ margin: 0, color: '#1E7E34', fontSize: '18px' }}>
+                        Conectar com Código de 8 Dígitos (Sem Câmera)
+                      </h4>
+                    </div>
+                    <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#555', lineHeight: 1.5 }}>
+                      Ideal caso a câmera do celular esteja ruim ou quebrada. O WhatsApp gera um código para ser digitado diretamente no aplicativo.
+                    </p>
+
+                    {(pairingCode || waStatus.pairingCode) ? (
+                      <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#FFF', borderRadius: '8px', border: '1px solid #A3E6B4' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#155724', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Código de Conexão WhatsApp:
+                        </span>
+                        <div style={{
+                          fontFamily: 'monospace',
+                          fontSize: '32px',
+                          fontWeight: 'bold',
+                          letterSpacing: '4px',
+                          color: '#1E7E34',
+                          margin: '12px 0',
+                          padding: '12px',
+                          backgroundColor: '#F4FBF6',
+                          borderRadius: '8px',
+                          border: '2px dashed #1E7E34'
+                        }}>
+                          {(pairingCode || waStatus.pairingCode).length === 8 
+                            ? `${(pairingCode || waStatus.pairingCode).slice(0, 4)} - ${(pairingCode || waStatus.pairingCode).slice(4)}`
+                            : (pairingCode || waStatus.pairingCode)}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cleanCode = (pairingCode || waStatus.pairingCode).replace(/\s|-/g, '');
+                            navigator.clipboard.writeText(cleanCode);
+                            alert('Código ' + cleanCode + ' copiado!');
+                          }}
+                          style={{
+                            padding: '8px 18px',
+                            backgroundColor: 'var(--color-marrom)',
+                            color: '#FFF',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            marginBottom: '16px'
+                          }}
+                        >
+                          <Copy size={14} style={{ display: 'inline', marginRight: '6px' }} /> Copiar Código
+                        </button>
+
+                        <div style={{ textAlign: 'left', backgroundColor: '#FAF6F0', padding: '14px', borderRadius: '8px', fontSize: '13px', color: '#555', lineHeight: 1.6 }}>
+                          <strong>📲 Como conectar no celular dos noivos:</strong>
+                          <ol style={{ margin: '6px 0 0 0', paddingLeft: '20px' }}>
+                            <li>Abra o <strong>WhatsApp</strong> no celular dos noivos;</li>
+                            <li>Vá em <strong>Aparelhos Conectados</strong> &gt; <strong>Conectar Aparelho</strong>;</li>
+                            <li>Na parte inferior da tela, toque em <strong>"Conectar com número de telefone"</strong>;</li>
+                            <li>Digite o código acima!</li>
+                          </ol>
+                        </div>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleRequestPairingCode} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                        <div style={{ flex: 1, minWidth: '220px' }}>
+                          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '6px' }}>
+                            Número do WhatsApp dos Noivos (com DDD):
+                          </label>
+                          <input 
+                            type="tel" 
+                            required
+                            placeholder="Ex: 11987654321 ou (11) 98765-4321" 
+                            value={pairingPhone} 
+                            onChange={(e) => setPairingPhone(e.target.value)}
+                            style={{ ...styles.input, width: '100%', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                        <button 
+                          type="submit" 
+                          disabled={pairingLoading}
+                          style={{
+                            padding: '12px 20px',
+                            backgroundColor: '#1E7E34',
+                            color: '#FFF',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: 600,
+                            cursor: pairingLoading ? 'not-allowed' : 'pointer',
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: '0 2px 6px rgba(30, 126, 52, 0.2)'
+                          }}
+                        >
+                          <Smartphone size={16} /> 
+                          {pairingLoading ? 'Gerando Código...' : '⚡ Gerar Código de 8 Dígitos'}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+
+                  {/* OPÇÃO 2: CONECTAR COM QR CODE (SE PREFERIR) */}
+                  <div style={{ padding: '20px', backgroundColor: '#FFF', borderRadius: '12px', border: '1px solid #E0E0E0' }}>
+                    <details open={!!waStatus.qrCode}>
+                      <summary style={{ cursor: 'pointer', fontSize: '14px', fontWeight: 600, color: '#666' }}>
+                        📷 Ou conectar escaneando QR Code com a câmera
+                      </summary>
+                      
+                      <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                        {waStatus.qrCode ? (
+                          <div>
+                            <p style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>
+                              Aponte a câmera do WhatsApp para o QR Code abaixo:
+                            </p>
+                            <div style={{ display: 'inline-block', padding: '12px', backgroundColor: '#FFF', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', marginBottom: '12px' }}>
+                              <img src={waStatus.qrCode} alt="QR Code" style={{ width: '220px', height: '220px', display: 'block' }} />
+                            </div>
+                            <div>
+                              <button 
+                                onClick={handleConnectWhatsApp} 
+                                disabled={waLoading}
+                                style={{ ...styles.addGuestBtn, margin: '0 auto', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '8px 14px' }}
+                              >
+                                <RefreshCw size={14} className={waLoading ? 'spin' : ''} /> 
+                                {waLoading ? 'Gerando...' : 'Gerar Novo QR Code'}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px 0' }}>
+                              Nenhum QR Code ativo no momento.
+                            </p>
+                            <button 
+                              onClick={handleConnectWhatsApp} 
+                              disabled={waLoading}
+                              style={{ ...styles.addGuestBtn, margin: '0 auto', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '8px 14px' }}
+                            >
+                              <RefreshCw size={14} className={waLoading ? 'spin' : ''} /> 
+                              {waLoading ? 'Iniciando...' : 'Gerar QR Code'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </details>
+                  </div>
+
                 </div>
               )}
             </div>
