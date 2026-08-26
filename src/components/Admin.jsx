@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, LogOut, MessageSquare, Users, Check, X, Shield, EyeOff, Eye, Plus, Upload, Download, FileText, Copy, Sparkles, Smartphone, RefreshCw, Send, Radio, AlertCircle, CheckCircle2, Edit2, Trash2, Search, ExternalLink, Share2, CheckCheck, Loader2 } from 'lucide-react';
+import { Lock, LogOut, MessageSquare, Users, Check, X, Shield, EyeOff, Eye, Plus, Upload, Download, FileText, Copy, Sparkles, Smartphone, RefreshCw, Send, Radio, AlertCircle, CheckCircle2, Edit2, Trash2, Search, ExternalLink, Share2, CheckCheck, Loader2, Settings, MessageCircle, Sliders } from 'lucide-react';
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -22,6 +22,19 @@ export default function Admin() {
   const [testResponse, setTestResponse] = useState(null);
   const [resendingGiftId, setResendingGiftId] = useState(null);
   const [actionFeedback, setActionFeedback] = useState(null);
+
+  // Configuração Personalizável do Template de Mensagem do WhatsApp
+  const DEFAULT_WA_TEMPLATE = `Olá {nome}! ✨✉️\n\nPreparamos um convite interativo muito especial para você! Abra o envelope no link abaixo:\n{link}\n\nCom todo nosso amor e carinho,\nAna Clara & Dener 💍🤍`;
+
+  const [waTemplate, setWaTemplate] = useState(() => {
+    return localStorage.getItem('admin_wa_template') || DEFAULT_WA_TEMPLATE;
+  });
+  const [waLinkType, setWaLinkType] = useState(() => {
+    return localStorage.getItem('admin_wa_link_type') || 'envelope'; // 'envelope' | 'site'
+  });
+  const [showWaConfigModal, setShowWaConfigModal] = useState(false);
+  const [draftWaTemplate, setDraftWaTemplate] = useState('');
+  const [draftWaLinkType, setDraftWaLinkType] = useState('envelope');
 
   // Formulário Individual de Convidados
   const [newGuestCode, setNewGuestCode] = useState('');
@@ -209,6 +222,39 @@ export default function Admin() {
     }
   };
 
+  const generateWhatsAppMessage = (guest, customTemplate = waTemplate, customLinkType = waLinkType) => {
+    const guestName = guest?.name || guest?.guestName || 'Convidado Especial';
+    const code = guest?.code || 'CODIGO';
+    const envelopeUrl = `${window.location.origin}/convite?convite=${code}`;
+    const siteUrl = `${window.location.origin}/?convite=${code}`;
+    const defaultUrl = customLinkType === 'envelope' ? envelopeUrl : siteUrl;
+
+    let message = (customTemplate || DEFAULT_WA_TEMPLATE)
+      .replace(/\{nome\}/gi, guestName)
+      .replace(/\{codigo\}/gi, code)
+      .replace(/\{link_envelope\}/gi, envelopeUrl)
+      .replace(/\{link_site\}/gi, siteUrl)
+      .replace(/\{link\}/gi, defaultUrl);
+
+    return message;
+  };
+
+  const openWaConfigModal = () => {
+    setDraftWaTemplate(waTemplate);
+    setDraftWaLinkType(waLinkType);
+    setShowWaConfigModal(true);
+  };
+
+  const handleSaveWaConfig = (e) => {
+    if (e) e.preventDefault();
+    setWaTemplate(draftWaTemplate);
+    setWaLinkType(draftWaLinkType);
+    localStorage.setItem('admin_wa_template', draftWaTemplate);
+    localStorage.setItem('admin_wa_link_type', draftWaLinkType);
+    setShowWaConfigModal(false);
+    setActionFeedback({ type: 'success', message: 'Modelo de mensagem do WhatsApp salvo com sucesso!' });
+  };
+
   const handleCopyLink = (code) => {
     const url = `${window.location.origin}/?convite=${code}`;
     navigator.clipboard.writeText(url);
@@ -231,18 +277,14 @@ export default function Admin() {
   };
 
   const handleCopyWhatsAppText = (guest) => {
-    const guestName = guest.name || guest.guestName || 'Convidado Especial';
-    const url = `${window.location.origin}/?convite=${guest.code}`;
-    const text = `Olá ${guestName}! ✨💍\n\nVocê é nosso convidado especial! Acesse o site do nosso casamento para ver todos os detalhes e confirmar sua presença:\n${url}\n\nCom carinho,\nAna Clara & Dener 🤍`;
+    const text = generateWhatsAppMessage(guest);
     navigator.clipboard.writeText(text);
     setCopiedCode(guest.code + '-wa');
     setTimeout(() => setCopiedCode(null), 3000);
   };
 
   const handleCopyEnvelopeWhatsAppText = (guest) => {
-    const guestName = guest.name || guest.guestName || 'Convidado Especial';
-    const url = `${window.location.origin}/convite?convite=${guest.code}`;
-    const text = `Olá ${guestName}! ✨✉️\n\nPreparamos um convite interativo muito especial para você! Abra o envelope no link abaixo:\n${url}\n\nCom todo nosso amor e carinho,\nAna Clara & Dener 💍🤍`;
+    const text = generateWhatsAppMessage(guest, undefined, 'envelope');
     navigator.clipboard.writeText(text);
     setCopiedCode(guest.code + '-env-wa');
     setTimeout(() => setCopiedCode(null), 3000);
@@ -651,6 +693,26 @@ export default function Admin() {
               </div>
 
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  onClick={openWaConfigModal}
+                  style={{
+                    padding: '8px 14px',
+                    backgroundColor: '#EAF8EE',
+                    color: '#1E7E34',
+                    border: '1px solid #A3E6B4',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                  title="Personalizar texto, variáveis e links da mensagem do WhatsApp"
+                >
+                  <Settings size={15} /> Personalizar Mensagem WhatsApp
+                </button>
+
                 <button
                   onClick={handleDownloadFullCSV}
                   style={{
@@ -1627,9 +1689,369 @@ export default function Admin() {
               </form>
             </div>
 
+            {/* Card de Configuração do Modelo de Mensagem dos Convites */}
+            <div style={styles.card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                  <h3 style={{ ...styles.cardTitle, display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
+                    <MessageCircle size={20} color="#1E7E34" /> Modelo de Mensagem dos Convites
+                  </h3>
+                  <p style={{ ...styles.cardSubtitle, margin: '4px 0 0 0' }}>
+                    Personalize o texto copiado nos botões de WhatsApp e escolha se o link padrão será o <strong>Envelope Interativo</strong> ou o <strong>Site Direto</strong>.
+                  </p>
+                </div>
+                <button
+                  onClick={openWaConfigModal}
+                  style={{
+                    padding: '10px 18px',
+                    backgroundColor: '#1E7E34',
+                    color: '#FFF',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 6px rgba(30, 126, 52, 0.2)'
+                  }}
+                >
+                  <Sliders size={16} /> Personalizar Mensagem
+                </button>
+              </div>
+
+              {/* Prévia Atual do Modelo Salvo */}
+              <div style={{
+                marginTop: '16px',
+                padding: '16px',
+                backgroundColor: '#F4FBF6',
+                border: '1px solid #C3E6CB',
+                borderRadius: '8px'
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#155724', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Modelo Ativo ({waLinkType === 'envelope' ? '✉️ Link do Envelope Interativo' : '🌐 Link Direto do Site'}):
+                </div>
+                <pre style={{
+                  margin: 0,
+                  fontFamily: 'inherit',
+                  fontSize: '13px',
+                  color: '#155724',
+                  whiteSpace: 'pre-wrap',
+                  lineHeight: 1.5
+                }}>
+                  {generateWhatsAppMessage({ name: 'Mariana Silva', code: '26SL87' })}
+                </pre>
+              </div>
+            </div>
+
           </div>
         )}
       </div>
+
+      {/* Modal de Configuração do Modelo do WhatsApp */}
+      {showWaConfigModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: '#FFF',
+            borderRadius: '16px',
+            maxWidth: '650px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+            border: '1px solid #DDD'
+          }}>
+            {/* Cabeçalho do Modal */}
+            <div style={{
+              padding: '20px 24px',
+              borderBottom: '1px solid #EEE',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: '#F8FBF9',
+              borderTopLeftRadius: '16px',
+              borderTopRightRadius: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  backgroundColor: '#EAF8EE',
+                  color: '#1E7E34',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <MessageCircle size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', color: '#333' }}>
+                    Personalizar Mensagem do WhatsApp
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
+                    Defina o texto que será copiado ao clicar no botão "WhatsApp"
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowWaConfigModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <form onSubmit={handleSaveWaConfig} style={{ padding: '24px' }}>
+              {/* 1. Escolha do Link Padrão */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '8px' }}>
+                  1. Qual link padrão a tag <code style={{ backgroundColor: '#EEE', padding: '2px 6px', borderRadius: '4px' }}>{'{link}'}</code> deve gerar?
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <label style={{
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    border: `2px solid ${draftWaLinkType === 'envelope' ? '#1E7E34' : '#E0E0E0'}`,
+                    backgroundColor: draftWaLinkType === 'envelope' ? '#F4FBF6' : '#FFF',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px'
+                  }}>
+                    <input 
+                      type="radio" 
+                      name="linkType" 
+                      value="envelope" 
+                      checked={draftWaLinkType === 'envelope'} 
+                      onChange={() => setDraftWaLinkType('envelope')}
+                      style={{ marginTop: '3px' }}
+                    />
+                    <div>
+                      <strong style={{ fontSize: '13px', color: '#333', display: 'block' }}>✉️ Convite com Envelope</strong>
+                      <span style={{ fontSize: '11px', color: '#666' }}>Abre a animação do envelope 3D (/convite?convite=...)</span>
+                    </div>
+                  </label>
+
+                  <label style={{
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    border: `2px solid ${draftWaLinkType === 'site' ? '#1E7E34' : '#E0E0E0'}`,
+                    backgroundColor: draftWaLinkType === 'site' ? '#F4FBF6' : '#FFF',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px'
+                  }}>
+                    <input 
+                      type="radio" 
+                      name="linkType" 
+                      value="site" 
+                      checked={draftWaLinkType === 'site'} 
+                      onChange={() => setDraftWaLinkType('site')}
+                      style={{ marginTop: '3px' }}
+                    />
+                    <div>
+                      <strong style={{ fontSize: '13px', color: '#333', display: 'block' }}>🌐 Link Direto do Site</strong>
+                      <span style={{ fontSize: '11px', color: '#666' }}>Vai direto para o site com auto-scroll no RSVP (/?convite=...)</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* 2. Modelos Prontos (Presets) */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)', marginBottom: '8px' }}>
+                  2. Carregar Modelo Pronto (Opcional):
+                </label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDraftWaLinkType('envelope');
+                      setDraftWaTemplate(`Olá {nome}! ✨✉️\n\nPreparamos um convite interativo muito especial para você! Abra o envelope no link abaixo:\n{link_envelope}\n\nCom todo nosso amor e carinho,\nAna Clara & Dener 💍🤍`);
+                    }}
+                    style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '6px', border: '1px solid #DDD', backgroundColor: '#F8F9FA', cursor: 'pointer' }}
+                  >
+                    ✉️ Modelo Envelope
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDraftWaLinkType('site');
+                      setDraftWaTemplate(`Olá {nome}! ✨💍\n\nVocê é nosso convidado especial! Acesse o site do nosso casamento para ver todos os detalhes e confirmar sua presença:\n{link_site}\n\nCom carinho,\nAna Clara & Dener 🤍`);
+                    }}
+                    style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '6px', border: '1px solid #DDD', backgroundColor: '#F8F9FA', cursor: 'pointer' }}
+                  >
+                    🌐 Modelo Site / RSVP
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDraftWaTemplate(`Oi {nome}! Segue o link com seu convite para o nosso casamento:\n{link}\n\nEsperamos você lá! 💍🤍`);
+                    }}
+                    style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '6px', border: '1px solid #DDD', backgroundColor: '#F8F9FA', cursor: 'pointer' }}
+                  >
+                    🤍 Modelo Curto
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. Textarea de Edição da Mensagem */}
+              <div style={{ marginBottom: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-marrom)' }}>
+                    3. Texto da Mensagem:
+                  </label>
+                  <span style={{ fontSize: '11px', color: '#888' }}>Clique nas tags abaixo para inserir:</span>
+                </div>
+
+                {/* Chips de Inserção de Tags */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                  {[
+                    { tag: '{nome}', desc: 'Nome do Convidado' },
+                    { tag: '{link}', desc: 'Link Padrão' },
+                    { tag: '{codigo}', desc: 'Código' },
+                    { tag: '{link_envelope}', desc: 'Link Envelope' },
+                    { tag: '{link_site}', desc: 'Link Site' }
+                  ].map((t) => (
+                    <button
+                      key={t.tag}
+                      type="button"
+                      onClick={() => setDraftWaTemplate(prev => prev + ' ' + t.tag)}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        backgroundColor: '#EAEAEA',
+                        border: '1px solid #DDD',
+                        fontSize: '11px',
+                        fontFamily: 'monospace',
+                        cursor: 'pointer'
+                      }}
+                      title={`Inserir ${t.desc}`}
+                    >
+                      + {t.tag}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  rows="7"
+                  value={draftWaTemplate}
+                  onChange={(e) => setDraftWaTemplate(e.target.value)}
+                  placeholder="Escreva sua mensagem personalizada aqui..."
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: '8px',
+                    border: '1px solid #C3D0C3',
+                    fontSize: '13px',
+                    lineHeight: 1.5,
+                    boxSizing: 'border-box',
+                    fontFamily: 'inherit',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* 4. Prévia em Tempo Real (Simulação Balão do WhatsApp) */}
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#555', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Prévia em Tempo Real (Exemplo com "Mariana Silva"):
+                </label>
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: '#E5DDD5',
+                  backgroundImage: 'radial-gradient(#D6CCC2 1px, transparent 1px)',
+                  backgroundSize: '12px 12px',
+                  borderRadius: '12px'
+                }}>
+                  <div style={{
+                    backgroundColor: '#E7FFDB',
+                    padding: '12px 14px',
+                    borderRadius: '8px 8px 0 8px',
+                    maxWidth: '85%',
+                    marginLeft: 'auto',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                    position: 'relative'
+                  }}>
+                    <pre style={{
+                      margin: 0,
+                      fontFamily: 'inherit',
+                      fontSize: '13px',
+                      color: '#111',
+                      whiteSpace: 'pre-wrap',
+                      lineHeight: 1.5
+                    }}>
+                      {generateWhatsAppMessage({ name: 'Mariana Silva', code: '26SL87' }, draftWaTemplate, draftWaLinkType)}
+                    </pre>
+                    <div style={{ textAlign: 'right', fontSize: '10px', color: '#667781', marginTop: '4px' }}>
+                      12:00 <CheckCheck size={12} style={{ display: 'inline', color: '#53BDEB' }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botões do Rodapé do Modal */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowWaConfigModal(false)}
+                  style={{
+                    padding: '10px 18px',
+                    backgroundColor: '#EEE',
+                    color: '#333',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: 600
+                  }}
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  style={{
+                    padding: '10px 22px',
+                    backgroundColor: '#1E7E34',
+                    color: '#FFF',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 8px rgba(30, 126, 52, 0.25)'
+                  }}
+                >
+                  <Check size={16} /> Salvar Configuração
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

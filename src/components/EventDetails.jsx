@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Navigation, Clock, Calendar, ExternalLink } from 'lucide-react';
+import { MapPin, Navigation, Calendar, ExternalLink } from 'lucide-react';
 
 export default function EventDetails() {
   const mapsUrl = "https://maps.app.goo.gl/asWzc8dHmizWayD88?g_st=iw";
@@ -42,31 +42,54 @@ export default function EventDetails() {
           alignItems: 'stretch'
         }}>
 
-          {/* Card com Texto & Detalhes */}
-          <div className="glass-card" style={{ padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          {/* Card com Texto Completo em Tamanho Uniforme & Detalhes */}
+          <div className="glass-card" style={{ padding: '36px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', backgroundColor: 'rgba(127, 143, 106, 0.15)', color: 'var(--color-verde-oliva)', borderRadius: '999px', fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', marginBottom: '20px' }}>
                 <Calendar size={14} /> 28 DE NOVEMBRO DE 2026
               </div>
 
-              <h3 style={{ fontSize: '32px', color: 'var(--color-marrom)', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '30px', color: 'var(--color-marrom)', marginBottom: '20px' }}>
                 Sítio São Jorge · Espaço Jardim Secreto
               </h3>
 
-              <p style={{ fontFamily: 'var(--font-serif)', fontSize: '18px', lineHeight: 1.6, color: 'var(--text-dark)', marginBottom: '16px' }}>
-                "Escolher o lugar onde celebraríamos esse dia foi uma das decisões mais especiais do nosso casamento. Queríamos um lugar que refletisse quem somos, onde pudéssemos viver cada momento com leveza e receber com carinho todas as pessoas que amamos."
-              </p>
+              <div style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: '16.5px',
+                lineHeight: 1.7,
+                color: 'var(--text-dark)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                marginBottom: '24px'
+              }}>
+                <p style={{ margin: 0 }}>
+                  escolher o lugar onde celebraríamos esse dia foi uma das decisões mais especiais do nosso casamento. queríamos um lugar refletisse quem somos, onde pudéssemos viver cada momento com leveza e receber com carinho toda as pessoas que amamos.
+                </p>
 
-              <p style={{ fontSize: '14px', lineHeight: 1.8, color: 'var(--text-muted)', marginBottom: '20px' }}>
-                O <strong>Jardim Secreto</strong> representa exatamente aquilo que o Senhor preparou para nós, primeiro em nossos corações e, agora, em um lugar onde diremos o segundo "sim" mais importante das nossas vidas.
-              </p>
+                <p style={{ margin: 0 }}>
+                  o Jardim Secreto representa exatamente aquilo que o Senhor preparou para nós, primeiro em nossos corações e, agora, em um lugar onde diremos o segundo "sim" mais importante das nossas vidas.
+                </p>
+
+                <p style={{ margin: 0 }}>
+                  que, sempre que nos lembrarmos deste dia, nossos corações sejam levados de volta ao nosso lugar secreto, onde encontramos descanso no Senhor. temos certeza de que vocês também vão se apaixonar por esse lugar.
+                </p>
+
+                <p style={{ margin: 0 }}>
+                  a cerimônia e a festa serão realizadas no Sítio São Jorge, no espaço Jardim Secreto, localizado na Rua Araribás, 25, em São Bernardo do Campo/SP.
+                </p>
+
+                <p style={{ margin: 0, fontWeight: 600, color: 'var(--color-marrom)' }}>
+                  esperamos vocês lá &lt;3
+                </p>
+              </div>
 
               <div style={{ padding: '16px', backgroundColor: '#FAF6F0', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', marginBottom: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                   <MapPin size={20} color="var(--color-marrom)" style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div>
                     <strong style={{ color: 'var(--color-marrom)', fontSize: '15px' }}>Endereço Completo:</strong>
-                    <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '2px', margin: 0 }}>
                       Rua Araribás, 25 · Anchieta, São Bernardo do Campo - SP
                     </p>
                   </div>
