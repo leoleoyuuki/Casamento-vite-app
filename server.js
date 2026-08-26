@@ -83,7 +83,10 @@ const getAsaasHeaders = () => {
 
 // Helper: Determina a URL base (Sandbox vs Produção) dinamicamente
 const getAsaasBaseUrl = () => {
-  if (process.env.ASAAS_ENVIRONMENT === 'production') {
+  const env = (process.env.ASAAS_ENVIRONMENT || '').trim().toLowerCase();
+  
+  // Se estiver explicitamente como production OU se estiver no Vercel e não for sandbox
+  if (env === 'production' || (process.env.VERCEL === '1' && env !== 'sandbox') || (process.env.VERCEL_ENV === 'production' && env !== 'sandbox')) {
     return 'https://www.asaas.com/api/v3';
   }
   return 'https://sandbox.asaas.com/api/v3';
@@ -125,20 +128,49 @@ app.post('/api/asaas/pix', async (req, res) => {
     if (process.env.ASAAS_API_KEY) {
       const baseUrl = getAsaasBaseUrl();
       // 1. Criar Cliente
-      const customerRes = await fetch(`${baseUrl}/customers`, {
+      const finalCpf = (guestCpf && guestCpf.replace(/\D/g, '').length === 11) ? guestCpf.replace(/\D/g, '') : generateValidCPF();
+      let customerRes = await fetch(`${baseUrl}/customers`, {
         method: 'POST',
         headers: getAsaasHeaders(),
         body: JSON.stringify({
           name: guestName || 'Convidado Casamento',
           email: guestEmail || 'convidado@casamento.com',
           mobilePhone: guestPhone ? guestPhone.replace(/\D/g, '') : undefined,
-          cpfCnpj: guestCpf || '00000000000'
+          cpfCnpj: finalCpf
         })
       });
-      const customer = await customerRes.json();
+      let customer = await customerRes.json();
+
+      // Se falhar no Sandbox com chave de produção, alterna automaticamente para Produção
+      if (customer.errors && (
+        customer.errors[0]?.code === 'invalid_access_token' || 
+        customer.errors[0]?.description?.includes('ambiente') ||
+        customer.errors[0]?.description?.includes('não pertence')
+      ) && baseUrl.includes('sandbox')) {
+        console.log('[ASAAS PIX] Chave de Produção detectada no Sandbox. Alternando para Produção...');
+        baseUrl = 'https://www.asaas.com/api/v3';
+        customerRes = await fetch(`${baseUrl}/customers`, {
+          method: 'POST',
+          headers: getAsaasHeaders(),
+          body: JSON.stringify({
+            name: guestName || 'Convidado Casamento',
+            email: guestEmail || 'convidado@casamento.com',
+            mobilePhone: guestPhone ? guestPhone.replace(/\D/g, '') : undefined,
+            cpfCnpj: finalCpf
+          })
+        });
+        customer = await customerRes.json();
+      }
+
+      if (customer.errors) {
+        return res.status(400).json({
+          success: false,
+          message: customer.errors[0]?.description || 'Erro ao validar dados no Asaas.'
+        });
+      }
 
       // 2. Criar Cobrança PIX
-      const paymentRes = await fetch(`${baseUrl}/payments`, {
+      let paymentRes = await fetch(`${baseUrl}/payments`, {
         method: 'POST',
         headers: getAsaasHeaders(),
         body: JSON.stringify({
@@ -149,7 +181,14 @@ app.post('/api/asaas/pix', async (req, res) => {
           description: `Presente de Casamento: ${giftTitle}`
         })
       });
-      const payment = await paymentRes.json();
+      let payment = await paymentRes.json();
+
+      if (payment.errors) {
+        return res.status(400).json({
+          success: false,
+          message: payment.errors[0]?.description || 'Erro ao gerar PIX no Asaas.'
+        });
+      }
 
       // Salvar presente no Firestore com status PENDING
       try {
@@ -251,9 +290,13 @@ app.post('/api/asaas/create-checkout', async (req, res) => {
     });
     let customer = await customerRes.json();
 
-    // Se falhar no Sandbox, tenta automaticamente na Produção (caso a chave seja da conta real)
-    if (customer.errors && customer.errors[0]?.code === 'invalid_access_token' && baseUrl.includes('sandbox')) {
-      console.log('[ASAAS API INFO] Chave não reconhecida no Sandbox. Testando ambiente de Produção...');
+    // Se falhar no Sandbox com chave de produção, alterna automaticamente para Produção
+    if (customer.errors && (
+      customer.errors[0]?.code === 'invalid_access_token' || 
+      customer.errors[0]?.description?.includes('ambiente') ||
+      customer.errors[0]?.description?.includes('não pertence')
+    ) && baseUrl.includes('sandbox')) {
+      console.log('[ASAAS API INFO] Chave de Produção detectada no Sandbox. Alternando automaticamente para Produção...');
       baseUrl = 'https://www.asaas.com/api/v3';
       customerRes = await fetch(`${baseUrl}/customers`, {
         method: 'POST',
