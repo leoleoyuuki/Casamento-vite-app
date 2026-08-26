@@ -26,33 +26,12 @@
           "value": "GET, OPTIONS"
         }
       ]
-    },
-    {
-      "source": "/convite.html",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        }
-      ]
     }
   ],
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/server.js"
-    },
-    {
-      "source": "/convite",
-      "destination": "/convite.html"
-    },
-    {
-      "source": "/convites",
-      "destination": "/convite.html"
-    },
-    {
-      "source": "/convite-interativo",
-      "destination": "/convite.html"
     },
     {
       "source": "/(.*)",
