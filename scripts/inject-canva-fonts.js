@@ -7,6 +7,13 @@ let modifiedHtml = htmlOnly
   .replace(/_assets\//g, '/assets/canva/')
   .replace(/window\['__canva_public_path__'\]\s*=\s*'_assets\/'/g, "window['__canva_public_path__'] = '/assets/canva/'");
 
+const fontPreloads = `
+  <link rel="preload" href="/assets/canva/fonts/003e82bf2f68067801da6a72d24cdf78.woff" as="font" type="font/woff" crossorigin="anonymous">
+  <link rel="preload" href="/assets/canva/fonts/77fbf36c56a33ec9d32065083bba3023.woff" as="font" type="font/woff" crossorigin="anonymous">
+  <link rel="preload" href="/assets/canva/fonts/834f64ff415fb8f4f5d92d8fd40507e9.woff" as="font" type="font/woff" crossorigin="anonymous">
+  <link rel="preload" href="/assets/canva/fonts/b07201e0e9fc452103c1c0345b0e7c1d.woff" as="font" type="font/woff" crossorigin="anonymous">
+`;
+
 const fontStyles = `
 <style>
 /* Fontes Oficiais do Canva com seus identificadores exatos */
@@ -16,6 +23,7 @@ const fontStyles = `
        url('/assets/canva/003e82bf2f68067801da6a72d24cdf78.woff') format('woff');
   font-weight: normal;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'YAEz2L9phwY';
@@ -23,6 +31,7 @@ const fontStyles = `
        url('/assets/canva/003e82bf2f68067801da6a72d24cdf78.woff') format('woff');
   font-weight: normal;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'Sloop Script Pro';
@@ -30,6 +39,7 @@ const fontStyles = `
        url('/assets/canva/003e82bf2f68067801da6a72d24cdf78.woff') format('woff');
   font-weight: normal;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'YAFdJhX-538,0';
@@ -37,6 +47,7 @@ const fontStyles = `
        url('/assets/canva/77fbf36c56a33ec9d32065083bba3023.woff') format('woff');
   font-weight: normal;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'YAFdJhX-538';
@@ -44,6 +55,7 @@ const fontStyles = `
        url('/assets/canva/77fbf36c56a33ec9d32065083bba3023.woff') format('woff');
   font-weight: normal;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'Cormorant Garamond';
@@ -51,6 +63,7 @@ const fontStyles = `
        url('/assets/canva/77fbf36c56a33ec9d32065083bba3023.woff') format('woff');
   font-weight: normal;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'YACgEZ1cb1Q,0';
@@ -58,6 +71,7 @@ const fontStyles = `
        url('/assets/canva/834f64ff415fb8f4f5d92d8fd40507e9.woff') format('woff');
   font-weight: normal;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'YACgEZ1cb1Q';
@@ -65,19 +79,28 @@ const fontStyles = `
        url('/assets/canva/834f64ff415fb8f4f5d92d8fd40507e9.woff') format('woff');
   font-weight: normal;
   font-style: normal;
+  font-display: block;
 }
 
-/* Ajustes de overflow para impedir cortes ou sobreposição */
+/* Prevenção de corte e sobreposição mobile */
 body, html {
   overflow-x: hidden !important;
   margin: 0 !important;
   padding: 0 !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Evitar quebras de linha indevidas nas frases principais */
-span, div, p {
+/* Evitar sobreposição de linhas em títulos script */
+span, div, p, text {
   text-rendering: geometricPrecision;
-  -webkit-font-smoothing: antialiased;
+}
+
+@media (max-width: 768px) {
+  /* No mobile, permitir que caixas de texto com script respirem para não encavalar */
+  span {
+    word-break: normal !important;
+  }
 }
 </style>
 `;
@@ -88,6 +111,7 @@ const injectionScript = `
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get('convite') || urlParams.get('code') || urlParams.get('c') || '';
 
+  // Interceptar cliques para direcionar ao site
   document.addEventListener('click', function(e) {
     const target = e.target.closest('a') || e.target;
     const text = (target.innerText || target.textContent || '').trim().toLowerCase();
@@ -100,13 +124,26 @@ const injectionScript = `
       }
     }
   }, true);
+
+  // Forçar recálculo perfeito de layout no mobile após carregamento das fontes
+  if (document.fonts) {
+    document.fonts.ready.then(function() {
+      setTimeout(function() {
+        window.dispatchEvent(new Event('resize'));
+      }, 100);
+      setTimeout(function() {
+        window.dispatchEvent(new Event('resize'));
+      }, 500);
+    });
+  }
 })();
 </script>
 `;
 
 modifiedHtml = modifiedHtml
+  .replace('<head>', '<head>' + fontPreloads)
   .replace('</head>', fontStyles + '</head>')
   .replace('</body>', injectionScript + '</body>');
 
 fs.writeFileSync('./public/convite.html', modifiedHtml, 'utf8');
-console.log('Successfully injected explicit @font-face rules into public/convite.html!');
+console.log('Successfully updated public/convite.html with mobile & font-display block rules!');
