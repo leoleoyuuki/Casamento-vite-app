@@ -210,7 +210,7 @@ export default function Admin() {
   };
 
   const handleCopyLink = (code) => {
-    const url = `${window.location.origin}/convite?convite=${code}`;
+    const url = `${window.location.origin}/?convite=${code}`;
     navigator.clipboard.writeText(url);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 3000);
@@ -232,8 +232,8 @@ export default function Admin() {
 
   const handleCopyWhatsAppText = (guest) => {
     const guestName = guest.name || guest.guestName || 'Convidado Especial';
-    const url = `${window.location.origin}/convite?convite=${guest.code}`;
-    const text = `Olá ${guestName}! ✨✉️\n\nPreparamos um convite interativo muito especial para você! Abra o envelope no link abaixo:\n${url}\n\nCom todo nosso amor e carinho,\nAna Clara & Dener 💍🤍`;
+    const url = `${window.location.origin}/?convite=${guest.code}`;
+    const text = `Olá ${guestName}! ✨💍\n\nVocê é nosso convidado especial! Acesse o site do nosso casamento para ver todos os detalhes e confirmar sua presença:\n${url}\n\nCom carinho,\nAna Clara & Dener 🤍`;
     navigator.clipboard.writeText(text);
     setCopiedCode(guest.code + '-wa');
     setTimeout(() => setCopiedCode(null), 3000);
