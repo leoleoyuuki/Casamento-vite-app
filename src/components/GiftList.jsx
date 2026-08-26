@@ -39,8 +39,17 @@ export default function GiftList({ onSelectGift }) {
 
   const handleCustomSubmit = (e) => {
     e.preventDefault();
-    const val = parseFloat(customAmount);
-    if (!val || val <= 0) return;
+    if (!customAmount) return;
+    const normalized = customAmount.toString().replace(',', '.');
+    const val = parseFloat(normalized);
+    if (isNaN(val) || val <= 0) {
+      alert('Por favor, digite um valor válido para presentear.');
+      return;
+    }
+    if (val < 5) {
+      alert('O valor mínimo permitido pelo sistema de pagamentos (Asaas) é de R$ 5,00.');
+      return;
+    }
 
     onSelectGift({
       id: 'custom',
@@ -452,9 +461,9 @@ export default function GiftList({ onSelectGift }) {
               </span>
               <input
                 type="number"
-                step="10"
-                min="10"
-                placeholder="Valor personalizado"
+                step="any"
+                min="1"
+                placeholder="Digite qualquer valor (ex: 50 ou 125,50)"
                 value={customAmount}
                 onChange={(e) => setCustomAmount(e.target.value)}
                 style={{
@@ -472,18 +481,24 @@ export default function GiftList({ onSelectGift }) {
             <button
               type="submit"
               style={{
-                padding: '12px 24px',
-                backgroundColor: 'var(--color-accent)',
-                color: '#FFF',
+                padding: '12px 28px',
+                backgroundColor: 'var(--color-marrom, #745D57)',
+                color: '#FFFFFF',
                 border: 'none',
                 borderRadius: '10px',
                 fontSize: '14px',
                 fontWeight: 600,
                 cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 2px 8px rgba(116, 93, 87, 0.2)',
                 transition: 'all 0.2s ease'
               }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5c4843'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#745D57'}
             >
-              Presentear
+              <Gift size={16} color="#FFF" /> Presentear
             </button>
           </form>
         </div>

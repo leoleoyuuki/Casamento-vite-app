@@ -5,7 +5,8 @@ const htmlOnly = rawHtml.replace(/^Title:[\s\S]*?---\s*\n+/i, '');
 
 let modifiedHtml = htmlOnly
   .replace(/_assets\//g, '/assets/canva/')
-  .replace(/window\['__canva_public_path__'\]\s*=\s*'_assets\/'/g, "window['__canva_public_path__'] = '/assets/canva/'");
+  .replace(/window\['__canva_public_path__'\]\s*=\s*'_assets\/'/g, "window['__canva_public_path__'] = '/assets/canva/'")
+  .replace(/https:\/\/casamento-vite-app\.vercel\.app/g, '/');
 
 const fontPreloads = `
   <link rel="preload" href="/assets/canva/fonts/003e82bf2f68067801da6a72d24cdf78.woff" as="font" type="font/woff" crossorigin="anonymous">
@@ -97,7 +98,6 @@ span, div, p, text {
 }
 
 @media (max-width: 768px) {
-  /* No mobile, permitir que caixas de texto com script respirem para não encavalar */
   span {
     word-break: normal !important;
   }
@@ -110,18 +110,37 @@ const injectionScript = `
 (function() {
   const urlParams = new URLSearchParams(window.location.search);
   const code = urlParams.get('convite') || urlParams.get('code') || urlParams.get('c') || '';
+  const targetHref = code ? '/?convite=' + encodeURIComponent(code) + '#rsvp' : '/#rsvp';
+
+  // Atualizar dinamicamente os links <a> conforme o Canva monta os componentes no DOM
+  function updateLinks() {
+    const links = document.querySelectorAll('a');
+    links.forEach(a => {
+      const text = (a.innerText || a.textContent || '').trim().toLowerCase();
+      const href = a.getAttribute('href') || '';
+      
+      if (text.includes('site') || text.includes('confirmar') || text.includes('história') || href.includes('casamento-vite-app') || href === '/') {
+        a.setAttribute('href', targetHref);
+        a.setAttribute('target', '_top');
+      }
+    });
+  }
+
+  // Executar imediatamente e observar mudanças no DOM
+  updateLinks();
+  const observer = new MutationObserver(updateLinks);
+  observer.observe(document.documentElement, { childList: true, subtree: true });
 
   // Interceptar cliques para direcionar ao site
   document.addEventListener('click', function(e) {
     const target = e.target.closest('a') || e.target;
     const text = (target.innerText || target.textContent || '').trim().toLowerCase();
+    const href = target.getAttribute ? target.getAttribute('href') : '';
     
-    if (text.includes('site') || text.includes('história') || text.includes('local') || text.includes('confirmar')) {
-      if (text.includes('site') || text.includes('confirmar')) {
-        e.preventDefault();
-        e.stopPropagation();
-        window.top.location.href = code ? '/?convite=' + encodeURIComponent(code) + '#rsvp' : '/#rsvp';
-      }
+    if (text.includes('site') || text.includes('confirmar') || (href && (href.includes('casamento-vite-app') || href === '/'))) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.top.location.href = targetHref;
     }
   }, true);
 
@@ -130,9 +149,11 @@ const injectionScript = `
     document.fonts.ready.then(function() {
       setTimeout(function() {
         window.dispatchEvent(new Event('resize'));
+        updateLinks();
       }, 100);
       setTimeout(function() {
         window.dispatchEvent(new Event('resize'));
+        updateLinks();
       }, 500);
     });
   }
@@ -146,4 +167,4 @@ modifiedHtml = modifiedHtml
   .replace('</body>', injectionScript + '</body>');
 
 fs.writeFileSync('./public/convite.html', modifiedHtml, 'utf8');
-console.log('Successfully updated public/convite.html with mobile & font-display block rules!');
+console.log('Successfully updated public/convite.html with dynamic link rewriting and target=_top!');

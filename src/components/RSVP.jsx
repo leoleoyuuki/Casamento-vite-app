@@ -65,12 +65,16 @@ export default function RSVP() {
         setTotalGuests(1);
 
         if (fromUrl) {
-          setTimeout(() => {
+          const doScroll = () => {
             const rsvpElement = document.getElementById('rsvp');
             if (rsvpElement) {
-              rsvpElement.scrollIntoView({ behavior: 'smooth' });
+              rsvpElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
-          }, 300);
+          };
+          doScroll();
+          setTimeout(doScroll, 200);
+          setTimeout(doScroll, 600);
+          setTimeout(doScroll, 1200);
         }
       } else {
         setErrorMsg(data.message || 'Código não encontrado na lista fechada. Verifique seu convite ou digite o código correto.');

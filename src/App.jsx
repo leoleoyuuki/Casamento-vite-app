@@ -20,6 +20,35 @@ export default function App() {
 
   // Roteamento Simples
   const path = window.location.pathname;
+
+  // Auto-scroll para #rsvp se houver convite ou hash na URL
+  React.useEffect(() => {
+    const scrollToTarget = () => {
+      const hash = window.location.hash;
+      const search = new URLSearchParams(window.location.search);
+      const isRsvpTarget = hash.includes('rsvp') || hash.includes('confirmar') || search.has('convite') || search.has('code');
+
+      if (isRsvpTarget) {
+        const el = document.getElementById('rsvp');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    };
+
+    scrollToTarget();
+    const t1 = setTimeout(scrollToTarget, 300);
+    const t2 = setTimeout(scrollToTarget, 800);
+    const t3 = setTimeout(scrollToTarget, 1500);
+
+    window.addEventListener('load', scrollToTarget);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      window.removeEventListener('load', scrollToTarget);
+    };
+  }, []);
   
   if (path === '/admin') {
     return <Admin />;
