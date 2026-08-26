@@ -43,6 +43,18 @@
       "destination": "/server.js"
     },
     {
+      "source": "/convite",
+      "destination": "/convite.html"
+    },
+    {
+      "source": "/convites",
+      "destination": "/convite.html"
+    },
+    {
+      "source": "/convite-interativo",
+      "destination": "/convite.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
