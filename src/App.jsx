@@ -54,7 +54,7 @@ export default function App() {
     return <Admin />;
   }
 
-  if (path === '/convite' || path === '/convite-interativo') {
+  if (path === '/convite' || path === '/convites' || path === '/convite-interativo') {
     return <InteractiveInvite />;
   }
 
