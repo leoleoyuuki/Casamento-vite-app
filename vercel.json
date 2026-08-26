@@ -26,6 +26,15 @@
           "value": "GET, OPTIONS"
         }
       ]
+    },
+    {
+      "source": "/convite.html",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
     }
   ],
   "rewrites": [
