@@ -26,15 +26,23 @@
           "value": "GET, OPTIONS"
         }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/convite",
+      "destination": "https://anaclaraedener123.my.canva.site/c-pia-de-c-pia-de-mcdp-mabel",
+      "permanent": false
     },
     {
-      "source": "/convite.html",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        }
-      ]
+      "source": "/convites",
+      "destination": "https://anaclaraedener123.my.canva.site/c-pia-de-c-pia-de-mcdp-mabel",
+      "permanent": false
+    },
+    {
+      "source": "/convite-interativo",
+      "destination": "https://anaclaraedener123.my.canva.site/c-pia-de-c-pia-de-mcdp-mabel",
+      "permanent": false
     }
   ],
   "rewrites": [

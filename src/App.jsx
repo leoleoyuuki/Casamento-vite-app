@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Countdown from './components/Countdown';
@@ -11,9 +11,7 @@ import CheckoutModal from './components/CheckoutModal';
 import RSVP from './components/RSVP';
 import MessageBoard from './components/MessageBoard';
 import Footer from './components/Footer';
-
 import Admin from './components/Admin';
-import InteractiveInvite from './components/InteractiveInvite';
 
 export default function App() {
   const [selectedGift, setSelectedGift] = useState(null);
@@ -21,8 +19,14 @@ export default function App() {
   // Roteamento Simples
   const path = window.location.pathname;
 
+  // Redirecionamento imediato da rota /convite para o link oficial do Canva
+  if (path === '/convite' || path === '/convites' || path === '/convite-interativo') {
+    window.location.replace('https://anaclaraedener123.my.canva.site/c-pia-de-c-pia-de-mcdp-mabel');
+    return null;
+  }
+
   // Auto-scroll para #rsvp se houver convite ou hash na URL
-  React.useEffect(() => {
+  useEffect(() => {
     const scrollToTarget = () => {
       const hash = window.location.hash;
       const search = new URLSearchParams(window.location.search);
@@ -52,10 +56,6 @@ export default function App() {
   
   if (path === '/admin') {
     return <Admin />;
-  }
-
-  if (path === '/convite' || path === '/convites' || path === '/convite-interativo') {
-    return <InteractiveInvite />;
   }
 
   return (
