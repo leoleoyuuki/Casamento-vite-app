@@ -77,7 +77,7 @@ export default function Hero() {
           </span>
         </p>
 
-        {/* Data e Local em branco puro com pesos de fonte equilibrados */}
+        {/* Data, Horário e Local em branco puro com pesos de fonte equilibrados */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -93,6 +93,10 @@ export default function Hero() {
           <span style={{ width: '36px', height: '1.5px', backgroundColor: '#FFFFFF', display: 'inline-block', opacity: 0.9 }} />
           <span style={{ fontSize: 'clamp(15px, 2vw, 18px)', fontWeight: 600, letterSpacing: '0.2em', color: '#FFFFFF' }}>
             28 · 11 · 2026
+          </span>
+          <span style={{ color: '#FFFFFF', opacity: 0.8, fontSize: '13px' }}>·</span>
+          <span style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '0.15em', color: '#FFFFFF' }}>
+            09:30H
           </span>
           <span style={{ color: '#FFFFFF', opacity: 0.8, fontSize: '13px' }}>·</span>
           <span style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '0.2em', color: '#FFFFFF' }}>

@@ -17,7 +17,7 @@ export default function Footer() {
         </div>
 
         <p style={{ fontFamily: 'var(--font-serif)', fontSize: '18px', opacity: 0.9, marginBottom: '24px' }}>
-          28 de Novembro de 2026 · São Bernardo do Campo, SP
+          28 de Novembro de 2026 às 09:30h · São Bernardo do Campo, SP
         </p>
 
         {/* Links do Menu */}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock } from 'lucide-react';
 
 export default function Countdown() {
-  const weddingDate = new Date('2026-11-28T16:00:00');
+  const weddingDate = new Date('2026-11-28T09:30:00');
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
 
   function calculateTimeLeft() {
@@ -58,7 +58,7 @@ export default function Countdown() {
           color: 'var(--color-marrom)',
           marginBottom: '24px'
         }}>
-          28 de Novembro de 2026
+          28 de Novembro de 2026 · 09:30h
         </h3>
 
         {/* Contagem Regressiva Separada e Destaque */}

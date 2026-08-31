@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Navigation, Calendar, ExternalLink } from 'lucide-react';
+import { MapPin, Navigation, Calendar, Clock, ExternalLink } from 'lucide-react';
 
 export default function EventDetails() {
   const mapsUrl = "https://maps.app.goo.gl/asWzc8dHmizWayD88?g_st=iw";
@@ -46,7 +46,7 @@ export default function EventDetails() {
           <div className="glass-card" style={{ padding: '36px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', backgroundColor: 'rgba(127, 143, 106, 0.15)', color: 'var(--color-verde-oliva)', borderRadius: '999px', fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', marginBottom: '20px' }}>
-                <Calendar size={14} /> 28 DE NOVEMBRO DE 2026
+                <Calendar size={14} /> 28 DE NOVEMBRO DE 2026 · <Clock size={14} /> 09:30H
               </div>
 
               <h3 style={{ fontSize: '30px', color: 'var(--color-marrom)', marginBottom: '20px' }}>
@@ -84,7 +84,17 @@ export default function EventDetails() {
                 </p>
               </div>
 
-              <div style={{ padding: '16px', backgroundColor: '#FAF6F0', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', marginBottom: '24px' }}>
+              <div style={{ padding: '18px', backgroundColor: '#FAF6F0', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                  <Clock size={20} color="var(--color-marrom)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong style={{ color: 'var(--color-marrom)', fontSize: '15px' }}>Horário da Cerimônia:</strong>
+                    <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '2px', margin: 0 }}>
+                      09:30h (manhã) · Pontualmente
+                    </p>
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                   <MapPin size={20} color="var(--color-marrom)" style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div>
