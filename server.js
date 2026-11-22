@@ -531,42 +531,67 @@ app.post('/api/asaas/webhook', async (req, res) => {
 
   switch (event) {
     case 'PAYMENT_RECEIVED':
-    case 'PAYMENT_CONFIRMED':
+    case 'PAYMENT_CONFIRMED': {
       console.log(`✅ [WEBHOOK] Pagamento confirmado com sucesso para ${payment?.description || 'Presente'}!`);
       
       let guestPhone = null;
       let guestName = 'Amigo(a)';
       let giftTitle = payment?.description || 'Presente de Casamento';
       let docRef = null;
+      let shouldSendWhatsApp =
+        process.env.SKIP_WEBHOOK_EMAIL !== 'true' &&
+        process.env.SKIP_WEBHOOK_WHATSAPP !== 'true';
+      let skipReason = shouldSendWhatsApp ? '' : 'Variável SKIP_WEBHOOK_EMAIL/SKIP_WEBHOOK_WHATSAPP ativa';
 
-      // 1. Atualizar status no Firestore para PAID imediatamente (Blindagem)
+      // 1. Atualizar status no Firestore para PAID com verificação atômica de idempotência
       try {
         if (db && payment?.id) {
           docRef = db.collection('gifts').doc(payment.id);
-          const docSnap = await docRef.get();
-          
-          if (docSnap.exists) {
-            const giftData = docSnap.data();
-            guestPhone = giftData.guestPhone || giftData.phone;
-            guestName = giftData.guestName || guestName;
-            giftTitle = giftData.giftTitle || giftTitle;
-          }
+          const txResult = await db.runTransaction(async (tx) => {
+            const docSnap = await tx.get(docRef);
+            let alreadyProcessed = false;
 
-          await docRef.set({
-            paymentId: payment.id,
-            giftTitle: giftTitle,
-            amount: payment?.value ? parseFloat(payment.value) : undefined,
-            guestName: guestName,
-            guestPhone: guestPhone || '',
-            status: 'PAID',
-            paidAt: FieldValue.serverTimestamp(),
-            whatsappSent: false
-          }, { merge: true });
-          
-          console.log(`[FIRESTORE] Presente atualizado para PAID: ${payment.id}`);
+            if (docSnap.exists) {
+              const giftData = docSnap.data() || {};
+              guestPhone = giftData.guestPhone || giftData.phone || null;
+              guestName = giftData.guestName || guestName;
+              giftTitle = giftData.giftTitle || giftTitle;
+              alreadyProcessed = giftData.whatsappSent === true || giftData.status === 'PAID';
+            }
+
+            if (!alreadyProcessed) {
+              tx.set(docRef, {
+                paymentId: payment.id,
+                giftTitle,
+                ...(payment?.value ? { amount: parseFloat(payment.value) } : {}),
+                guestName,
+                guestPhone: guestPhone || '',
+                status: 'PAID',
+                paidAt: FieldValue.serverTimestamp(),
+                ...(shouldSendWhatsApp
+                  ? { whatsappSent: true, whatsappSentAt: FieldValue.serverTimestamp(), whatsappError: null }
+                  : { whatsappSent: false })
+              }, { merge: true });
+            }
+
+            return { alreadyProcessed };
+          });
+
+          if (txResult.alreadyProcessed) {
+            shouldSendWhatsApp = false;
+            skipReason = 'Pagamento já marcado como PAID / WhatsApp já enviado anteriormente';
+            console.log(`[FIRESTORE] Presente ${payment.id} já estava processado. Ignorando reenvio.`);
+          } else {
+            console.log(`[FIRESTORE] Presente atualizado para PAID: ${payment.id}`);
+          }
         }
       } catch (fsErr) {
         console.error('[FIRESTORE ERRO] Falha ao atualizar presente para PAID:', fsErr);
+      }
+
+      if (!shouldSendWhatsApp) {
+        console.log(`⏭️ [WHATSAPP IGNORADO] Mensagem não enviada para ${payment?.id || 'desconhecido'} (${skipReason}).`);
+        break;
       }
       
       // 2. Buscar dados do cliente no Asaas se o telefone não estava no Firestore
@@ -638,6 +663,7 @@ app.post('/api/asaas/webhook', async (req, res) => {
       }
 
       break;
+    }
     case 'PAYMENT_OVERDUE':
       console.log(`⚠️ [WEBHOOK] Cobrança vencida ID: ${payment?.id}`);
       break;
