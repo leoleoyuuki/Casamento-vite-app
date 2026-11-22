@@ -1571,6 +1571,91 @@ export default function Admin() {
                 </div>
               </div>
 
+              {/* Aviso de Conexão com o Microserviço de WhatsApp */}
+              {(() => {
+                const qrPageUrl = waStatus.microserviceQrUrl || 'https://microservice-casamento-anaedener.onrender.com/qr';
+                const healthUrl = waStatus.microserviceHealthUrl || 'https://microservice-casamento-anaedener.onrender.com/';
+                const isUsingMicroservice = !!waStatus.isMicroservice;
+                const isMicroserviceHealthy = isUsingMicroservice && waStatus.microserviceOnline !== false;
+
+                return (
+                  <div
+                    style={{
+                      padding: '16px 20px',
+                      marginBottom: '20px',
+                      borderRadius: '10px',
+                      border: `1px solid ${isMicroserviceHealthy ? '#A3E6B4' : '#F5C2C7'}`,
+                      backgroundColor: isMicroserviceHealthy ? '#F0FBF3' : '#FFF5F5',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '12px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', flex: '1 1 280px' }}>
+                      {isMicroserviceHealthy ? (
+                        <CheckCircle2 size={20} color="#1E7E34" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      ) : (
+                        <AlertCircle size={20} color="#B42318" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '14px', color: isMicroserviceHealthy ? '#1E7E34' : '#9B1C1C' }}>
+                          {isMicroserviceHealthy
+                            ? 'Conectado ao Microserviço de WhatsApp (Render)'
+                            : isUsingMicroservice
+                              ? 'Microserviço de WhatsApp indisponível ou hibernando'
+                              : 'Microserviço de WhatsApp não configurado (usando modo local)'}
+                        </div>
+                        <div style={{ fontSize: '12.5px', color: '#555', marginTop: '4px', lineHeight: 1.45 }}>
+                          {isMicroserviceHealthy ? (
+                            waStatus.isConnected ? (
+                              <>Microserviço respondendo normalmente e sessão do WhatsApp ativa.</>
+                            ) : (
+                              <>O microserviço está online, mas o WhatsApp ainda não está conectado. Acesse a página de conexão para ler o QR Code.</>
+                            )
+                          ) : isUsingMicroservice ? (
+                            <>
+                              Não foi possível obter resposta do microserviço ({waStatus.error || 'instância pode estar acordando no Render'}).{' '}
+                              <a href={healthUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#9B1C1C', fontWeight: 600 }}>
+                                Verificar health
+                              </a>
+                            </>
+                          ) : (
+                            <>
+                              Configure <code>WHATSAPP_API_URL</code> na Vercel apontando para o microserviço no Render ou acesse a página de conexão diretamente.
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {(!isMicroserviceHealthy || !waStatus.isConnected) && (
+                      <a
+                        href={qrPageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '10px 16px',
+                          borderRadius: '8px',
+                          backgroundColor: '#1E7E34',
+                          color: '#FFFFFF',
+                          fontWeight: 600,
+                          fontSize: '13px',
+                          textDecoration: 'none',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <ExternalLink size={15} /> Abrir Página de Conexão (QR)
+                      </a>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Status do WhatsApp */}
               {waStatus.isConnected ? (
                 /* Conectado */

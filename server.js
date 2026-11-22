@@ -41,10 +41,14 @@ try {
   console.error("⚠️ [FIREBASE] Erro crítico ao conectar banco:", err.message);
 }
 
-// Inicializar cliente do WhatsApp (Modo Apenas Envio)
-initWhatsAppClient().catch(err => {
-  console.warn('⚠️ [WHATSAPP] Inicialização em segundo plano:', err.message);
-});
+// Inicializar cliente do WhatsApp (Modo Apenas Envio) apenas se não houver microserviço externo configurado
+if (!process.env.WHATSAPP_API_URL) {
+  initWhatsAppClient().catch(err => {
+    console.warn('⚠️ [WHATSAPP] Inicialização em segundo plano:', err.message);
+  });
+} else {
+  console.log(`🌐 [WHATSAPP] Microserviço externo configurado (${process.env.WHATSAPP_API_URL}). Cliente Baileys local desativado.`);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -718,7 +722,9 @@ app.get('/api/whatsapp/status', async (req, res) => {
 
 app.post('/api/whatsapp/connect', async (req, res) => {
   try {
-    await initWhatsAppClient();
+    if (!process.env.WHATSAPP_API_URL) {
+      await initWhatsAppClient();
+    }
     const status = await getWhatsAppStatus();
     res.json({ success: true, message: 'Inicializando WhatsApp...', ...status });
   } catch (err) {

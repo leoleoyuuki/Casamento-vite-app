@@ -245,23 +245,56 @@ export async function ensureWhatsAppConnected(timeoutMs = 15000) {
 /**
  * Retorna o status atual da conexão e QR Code
  */
+const DEFAULT_MICROSERVICE_URL = 'https://microservice-casamento-anaedener.onrender.com';
+
 // Retorna o status atual da conexão e QR Code
 export async function getWhatsAppStatus() {
   const externalApiUrl = (process.env.WHATSAPP_API_URL || '').trim().replace(/\/$/, '');
   if (externalApiUrl) {
+    const healthUrl = `${externalApiUrl}/`;
+    const qrUrl = `${externalApiUrl}/qr`;
+    const headers = { 'Content-Type': 'application/json' };
+    if (process.env.WHATSAPP_API_KEY) headers['x-api-key'] = process.env.WHATSAPP_API_KEY;
+
+    let microserviceOnline = false;
     try {
-      const headers = { 'Content-Type': 'application/json' };
-      if (process.env.WHATSAPP_API_KEY) headers['x-api-key'] = process.env.WHATSAPP_API_KEY;
-      
-      const res = await fetch(`${externalApiUrl}/api/status`, { headers });
+      const healthRes = await fetch(healthUrl, { signal: AbortSignal.timeout(8000) });
+      microserviceOnline = healthRes.ok;
+    } catch {
+      microserviceOnline = false;
+    }
+
+    try {
+      const res = await fetch(`${externalApiUrl}/api/status`, {
+        headers,
+        signal: AbortSignal.timeout(8000)
+      });
       if (res.ok) {
         const data = await res.json();
         return {
           ...data,
           isMicroservice: true,
+          microserviceOnline: true,
+          microserviceUrl: externalApiUrl,
+          microserviceHealthUrl: healthUrl,
+          microserviceQrUrl: qrUrl,
           storage: 'Microserviço Externo (24/7)'
         };
       }
+
+      return {
+        status: 'DISCONNECTED',
+        isConnected: false,
+        qrCode: null,
+        user: null,
+        error: `Microserviço respondeu com HTTP ${res.status} em /api/status.`,
+        isMicroservice: true,
+        microserviceOnline,
+        microserviceUrl: externalApiUrl,
+        microserviceHealthUrl: healthUrl,
+        microserviceQrUrl: qrUrl,
+        storage: microserviceOnline ? 'Microserviço Externo (Sem Sessão)' : 'Microserviço Externo (Offline)'
+      };
     } catch (e) {
       return {
         status: 'DISCONNECTED',
@@ -270,6 +303,10 @@ export async function getWhatsAppStatus() {
         user: null,
         error: `Erro ao conectar com microserviço (${externalApiUrl}): ${e.message}`,
         isMicroservice: true,
+        microserviceOnline,
+        microserviceUrl: externalApiUrl,
+        microserviceHealthUrl: healthUrl,
+        microserviceQrUrl: qrUrl,
         storage: 'Microserviço Externo (Offline)'
       };
     }
@@ -282,7 +319,11 @@ export async function getWhatsAppStatus() {
     user: connectedUser,
     error: lastError,
     storage: 'Local (Apenas Envios)',
-    isMicroservice: false
+    isMicroservice: false,
+    microserviceOnline: false,
+    microserviceUrl: null,
+    microserviceHealthUrl: `${DEFAULT_MICROSERVICE_URL}/`,
+    microserviceQrUrl: `${DEFAULT_MICROSERVICE_URL}/qr`
   };
 }
 
